@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: 'Pretendard';
+  src: url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
+}
+
+@theme {
+  --color-primary: #FF6B6B;
+  --color-primary-dark: #ff5252;
+}
+
+:root {
+  font-family: 'Pretendard', system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: #121212;
+  background-color: #fafafa;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  min-width: 320px;
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent; /* 모바일 탭 하이라이트 제거 */
+  touch-action: manipulation; /* 더블탭 줌 방지 */
+}
+
+#root {
+  width: 100%;
+}
+
+/* 모바일 최적화 */
+* {
+  -webkit-touch-callout: none; /* iOS 롱프레스 메뉴 방지 */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input, textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* 버튼 터치 최적화 */
+button, a {
+  touch-action: manipulation;
+  cursor: pointer;
+}
+
+/* 스크롤 부드럽게 */
+* {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
