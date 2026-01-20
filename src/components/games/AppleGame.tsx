@@ -26,12 +26,6 @@ interface Cell {
     isRemoved: boolean;
 }
 
-interface QuizData {
-    question: string;
-    answer: string;
-    bonusPoints: number;
-}
-
 // Start Screen Component
 const StartScreen: React.FC<{ onStart: () => void; onShowHelp: () => void; onBack: () => void }> = ({ onStart, onShowHelp, onBack }) => {
     return (
