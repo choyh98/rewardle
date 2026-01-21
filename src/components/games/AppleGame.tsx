@@ -189,21 +189,16 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
         if (isFinished || grid.length === 0) return;
 
         const hintTimer = setTimeout(() => {
-            const timeSinceLastMove = Date.now() - lastMoveTime;
-            
-            if (timeSinceLastMove >= 20000) { // 20초 경과
-                // 합이 10이 되는 셀 조합 찾기
-                const foundHint = findHintCombination();
-                if (foundHint) {
-                    setHintCells(foundHint);
-                    // 3초 후 힌트 자동 제거
-                    setTimeout(() => {
-                        setHintCells([]);
-                        setLastMoveTime(Date.now()); // 힌트 후 타이머 리셋
-                    }, 3000);
-                }
+            // 합이 10이 되는 셀 조합 찾기
+            const foundHint = findHintCombination();
+            if (foundHint) {
+                setHintCells(foundHint);
+                // 3초 후 힌트 자동 제거
+                setTimeout(() => {
+                    setHintCells([]);
+                }, 3000);
             }
-        }, 20000); // 20초 후 한 번만 실행
+        }, 20000); // 20초 후 힌트 표시
 
         return () => clearTimeout(hintTimer);
     }, [lastMoveTime, isFinished, grid]);
@@ -477,10 +472,10 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
                             return (
                                 <div
                                     key={i}
-                                    className={`w-[26px] h-[30px] rounded-[6px] flex items-center justify-center transition-all ${isRevealed ? 'bg-[#4a90e2] text-white' : 'bg-[#e5e5e5] text-transparent'
+                                    className={`w-[26px] h-[30px] rounded-[6px] flex items-center justify-center transition-all ${isRevealed ? 'bg-[#4a90e2] text-white' : 'bg-[#e5e5e5]'
                                         }`}
                                 >
-                                    <span className="font-bold text-[14px]">{isRevealed ? s : s}</span>
+                                    {isRevealed && <span className="font-bold text-[14px]">{s}</span>}
                                 </div>
                             );
                         })}
@@ -604,13 +599,6 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
             {showQuiz && (
                 <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-6">
                     <div className="bg-white rounded-[24px] p-8 max-w-[400px] w-full relative">
-                        <button
-                            onClick={() => setShowQuiz(false)}
-                            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-[#999] hover:text-[#333] transition-colors"
-                        >
-                            ✕
-                        </button>
-
                         <div className="flex flex-col gap-6">
                             <div className="flex items-center gap-3">
                                 <div className="text-[32px]">🎯</div>
