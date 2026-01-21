@@ -70,7 +70,6 @@ const AttendancePage: React.FC = () => {
         addPoints(totalPoints, `일일 출석 체크${bonusMessage}`);
     };
 
-    const days = Array.from({ length: 30 }, (_, i) => i + 1);
     const today = new Date().getDate();
     const currentMonth = new Date().getMonth() + 1; // 1-12
     const currentYear = new Date().getFullYear();
