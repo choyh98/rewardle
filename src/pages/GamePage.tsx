@@ -42,10 +42,13 @@ const GamePage: React.FC = () => {
         if (!brand) return;
         const gameType = type === 'wordle' ? '워들 게임' : '사과 게임';
         addPoints(earnedPoints, `${brand.name} ${gameType} 완료`);
-        recordGameCompletion();
         
-        // 퀴즈 완료 기록 (오늘 완료한 퀴즈 목록에 추가)
-        markBrandAsCompleted(brand.id);
+        // 포인트를 받았을 때만 게임 완료로 기록
+        if (earnedPoints > 0) {
+            recordGameCompletion();
+            // 퀴즈 완료 기록 (오늘 완료한 퀴즈 목록에 추가)
+            markBrandAsCompleted(brand.id);
+        }
     };
 
     const handleBack = () => {

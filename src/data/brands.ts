@@ -16,15 +16,32 @@ interface Brand {
     appleGameWord: string;
 }
 
-let cachedBrands: Brand[] | null = null;
+// 캐시 데이터 구조
+interface BrandCache {
+    data: Brand[];
+    timestamp: number;
+}
+
+let cachedBrands: BrandCache | null = null;
+const CACHE_DURATION = 60 * 60 * 1000; // 1시간 (밀리초)
+
+// 캐시 유효성 검사
+const isCacheValid = (cache: BrandCache | null): boolean => {
+    if (!cache) return false;
+    const now = Date.now();
+    return (now - cache.timestamp) < CACHE_DURATION;
+};
 
 // Supabase에서 브랜드 데이터 가져오기
 export const fetchBrands = async (): Promise<Brand[]> => {
-    if (cachedBrands) {
-        return cachedBrands;
+    // 캐시가 유효하면 캐시 데이터 반환
+    if (isCacheValid(cachedBrands)) {
+        console.log('✅ Using cached brands data');
+        return cachedBrands!.data;
     }
 
     try {
+        console.log('🔄 Fetching fresh brands data from Supabase');
         const { data, error } = await supabase
             .from('brands')
             .select('*')
@@ -32,6 +49,11 @@ export const fetchBrands = async (): Promise<Brand[]> => {
 
         if (error) {
             console.error('Supabase fetch error:', error);
+            // 에러 시 오래된 캐시라도 반환
+            if (cachedBrands) {
+                console.warn('⚠️ Using stale cache due to error');
+                return cachedBrands.data;
+            }
             return [];
         }
 
@@ -41,7 +63,7 @@ export const fetchBrands = async (): Promise<Brand[]> => {
         }
 
         // Supabase 데이터를 Brand 형식으로 변환
-        cachedBrands = data.map(item => ({
+        const brands = data.map(item => ({
             id: item.id,
             name: item.name,
             wordleAnswer: item.wordle_answer,
@@ -55,9 +77,21 @@ export const fetchBrands = async (): Promise<Brand[]> => {
             appleGameWord: item.apple_game_word
         }));
 
-        return cachedBrands;
+        // 새 데이터로 캐시 업데이트
+        cachedBrands = {
+            data: brands,
+            timestamp: Date.now()
+        };
+
+        console.log(`✅ Cached ${brands.length} brands`);
+        return brands;
     } catch (error) {
         console.error('Failed to fetch brands:', error);
+        // 에러 시 오래된 캐시라도 반환
+        if (cachedBrands) {
+            console.warn('⚠️ Using stale cache due to error');
+            return cachedBrands.data;
+        }
         return [];
     }
 };

@@ -42,7 +42,7 @@ const StartScreen: React.FC<{ onStart: () => void; onShowHelp: () => void; onBac
 
             {/* Apple Image */}
             <div className="flex items-center justify-center">
-                <img src={appleImage} alt="사과" className="w-[280px] h-[280px] object-contain" />
+                <img src={appleImage} alt="사과" loading="lazy" className="w-[280px] h-[280px] object-contain" />
             </div>
 
             {/* Title */}
@@ -82,6 +82,7 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
     const [quizAnswer, setQuizAnswer] = useState('');
     const [showQuizResult, setShowQuizResult] = useState(false);
     const [quizResult, setQuizResult] = useState<{ correct: boolean } | null>(null);
+    const [quizSubmitted, setQuizSubmitted] = useState(false); // 퀴즈 제출 여부 추적
     const [hintCells, setHintCells] = useState<Cell[]>([]); // 힌트로 빛나는 셀들
     const [lastMoveTime, setLastMoveTime] = useState<number>(Date.now()); // 마지막 움직임 시간
     const [gameCompleted, setGameCompleted] = useState(false); // 게임 완료 여부 추적
@@ -195,7 +196,7 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
                 collectedSyllables.filter(cs => cs === ts).length >= targetSyllables.filter(s => s === ts).length
             );
             
-            // 글자를 다 모았으면 성공(5P), 아니면 실패(0P)
+            // 글자를 다 모았으면 5P, 1개라도 못 모았으면 0P
             onComplete(allSyllablesCollected ? 5 : 0);
         }
     }, [timeLeft, isFinished, gameCompleted, onComplete, collectedSyllables, targetSyllables]);
@@ -355,6 +356,10 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
     }, [isSelecting, selection, grid, collectedSyllables, targetSyllables, showWordComplete]);
 
     const handleQuizSubmit = () => {
+        // 이미 제출했으면 중복 방지
+        if (quizSubmitted) return;
+        
+        setQuizSubmitted(true);
         const correct = quizAnswer.trim() === brand.placeQuiz.answer;
         if (correct) {
             addPoints(5, `${brand.name} 사과 추가 미션 완료`); // 사과 추가미션 5P
@@ -381,7 +386,7 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
                     </div>
                     {/* Score */}
                     <div className="bg-white flex items-center gap-2 rounded-full px-2.5 h-[44px] shadow-sm">
-                        <img src={appleImage} alt="" className="w-[32px] h-[32px] object-contain" />
+                        <img src={appleImage} alt="" loading="lazy" className="w-[32px] h-[32px] object-contain" />
                         <p className="text-[18px] text-black font-semibold pr-1.5">{score}</p>
                     </div>
                 </div>
@@ -456,7 +461,7 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
                                             <>
                                                 {/* 사과 배경 이미지 */}
                                                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                                    <img src={appleImage} alt="" className="w-full h-full object-cover" />
+                                                    <img src={appleImage} alt="" loading="lazy" className="w-full h-full object-cover" />
                                                 </div>
                                                 {/* 숫자 */}
                                                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -503,7 +508,7 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
                                 </p>
                             </div>
                             <p className="text-[18px] text-[#666] text-center">
-                                +3 보너스 포인트!
+                                5P 획득! 추가 미션으로 5P 더 받으세요!
                             </p>
                             <button
                                 onClick={() => {
@@ -574,7 +579,8 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
 
                             <button
                                 onClick={handleQuizSubmit}
-                                className="bg-[#ff6b6b] h-[50px] rounded-[12px] text-white font-black text-[20px] hover:bg-[#ff5252] active:bg-[#e05555] transition-colors"
+                                disabled={quizSubmitted}
+                                className="bg-[#ff6b6b] h-[50px] rounded-[12px] text-white font-black text-[20px] hover:bg-[#ff5252] active:bg-[#e05555] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 제출하기
                             </button>
@@ -619,20 +625,26 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
             <AnimatePresence>
                 {isFinished && !showWordComplete && !showQuiz && !showQuizResult && (
                     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-6">
-                        <div className="bg-white rounded-[24px] p-8 max-w-[350px] w-full">
-                            <div className="flex flex-col items-center gap-6">
-                                <div className="text-[64px]">⏰</div>
-                                <h2 className="font-black text-[28px] text-[#ff6b6b] text-center">
-                                    시간 종료!
-                                </h2>
-                                <p className="text-[24px] text-[#333] font-bold">
-                                    최종 점수: {score}점
-                                </p>
+                        <div className="bg-white rounded-[16px] p-[32px] max-w-[320px] text-center">
+                            <div className="mb-[20px]">
+                                <div className="text-[48px] mb-[12px]">⏰</div>
+                                <p className="font-bold text-[24px] text-[#ff8800] mb-[8px]">시간 종료!</p>
+                                <p className="font-medium text-[16px] text-[#121212] mb-[12px]">최종 점수: {score}점</p>
+                                <p className="font-normal text-[14px] text-[#737373]">다시 도전해보세요!</p>
+                            </div>
+
+                            <div className="flex flex-col gap-[12px]">
+                                <button
+                                    onClick={() => window.location.reload()}
+                                    className="bg-[#ff6b6b] text-white font-semibold text-[16px] py-[12px] px-[24px] rounded-[8px] hover:bg-[#ff5252] transition-colors"
+                                >
+                                    다시 도전하기
+                                </button>
                                 <button
                                     onClick={onBack}
-                                    className="bg-[#ff6b6b] h-[50px] rounded-[12px] text-white font-black text-[20px] hover:bg-[#ff5252] transition-colors w-full"
+                                    className="text-[#737373] font-medium text-[14px] py-[8px] hover:text-[#121212] transition-colors touch-manipulation"
                                 >
-                                    확인
+                                    홈으로 가기
                                 </button>
                             </div>
                         </div>
@@ -713,7 +725,7 @@ const HelpModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                                                         repeatDelay: 2,
                                                     }}
                                                 >
-                                                    <img src={appleImage} alt="" className="absolute inset-0 w-full h-full object-contain opacity-20" />
+                                                    <img src={appleImage} alt="" loading="lazy" className="absolute inset-0 w-full h-full object-contain opacity-20" />
                                                     <span className="absolute font-black text-[24px] text-[#ff6b6b] drop-shadow-[0_2px_2px_rgba(0,0,0,0.5)]">
                                                         {num}
                                                     </span>
@@ -745,7 +757,7 @@ const HelpModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                                                                 repeatDelay: 2,
                                                             }}
                                                         >
-                                                            <img src={appleImage} alt="" className="absolute inset-0 w-full h-full object-contain opacity-20" />
+                                                            <img src={appleImage} alt="" loading="lazy" className="absolute inset-0 w-full h-full object-contain opacity-20" />
                                                             <span className="absolute font-black text-[24px] text-[#ff6b6b] drop-shadow-[0_2px_2px_rgba(0,0,0,0.5)]">
                                                                 {num}
                                                             </span>

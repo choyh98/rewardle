@@ -17,10 +17,6 @@ const LandingPage: React.FC = () => {
     useEffect(() => {
         const loadBrand = async () => {
             const brand = await getDefaultBrand();
-            if (!brand) {
-                // 등록된 퀴즈가 아예 없는지, 오늘 다 풀었는지 확인은 나중에
-                // 일단 null로 설정
-            }
             setDefaultBrand(brand);
         };
         loadBrand();
@@ -75,48 +71,54 @@ const LandingPage: React.FC = () => {
 
             {/* Menu Sections */}
             <div className="w-full max-w-md px-6 -mt-4 relative z-30 space-y-4">
-                {/* Game Area */}
-                {defaultBrand ? (
-                    <div className="space-y-4">
-                        <Link to={`/game/apple?brand=${defaultBrand.id}`} className="group bg-white rounded-2xl p-6 flex items-center gap-4 shadow-sm hover:shadow-md transition-all active:scale-[0.98] touch-manipulation">
-                            <img src={appleIcon} alt="사과 게임" className="h-[72px] w-auto object-contain group-hover:scale-105 transition-transform pointer-events-none" />
-                            <div className="flex-1 min-w-0">
-                                <h3 className="text-xl font-bold text-gray-800 mb-1 truncate">사과 게임</h3>
-                                <p className="text-gray-500 text-sm line-clamp-1">숫자10 만들고 글자 모으기</p>
-                            </div>
-                            <ChevronRight className="text-primary size-6 flex-shrink-0" />
-                        </Link>
-
-                        <Link to={`/game/wordle?brand=${defaultBrand.id}`} className="group bg-white rounded-2xl p-6 flex items-center gap-4 shadow-sm hover:shadow-md transition-all active:scale-[0.98] touch-manipulation">
-                            <img src={wordleIcon} alt="워들 게임" className="h-[72px] w-auto object-contain group-hover:scale-105 transition-transform pointer-events-none" />
-                            <div className="flex-1 min-w-0">
-                                <h3 className="text-xl font-bold text-gray-800 mb-1 truncate">워들 게임</h3>
-                                <p className="text-gray-500 text-sm line-clamp-1">가게명을 맞추고 포인트 받기</p>
-                            </div>
-                            <ChevronRight className="text-primary size-6 flex-shrink-0" />
-                        </Link>
-                    </div>
-                ) : (
-                    <div className="bg-white rounded-2xl p-8 text-center shadow-sm border-2 border-dashed border-gray-200">
-                        <div className="text-5xl mb-4">⏰</div>
-                        <h3 className="text-xl font-bold text-gray-800 mb-2">오늘의 퀴즈를 모두 완료했어요!</h3>
-                        <p className="text-gray-500 text-sm mb-4">내일 다시 새로운 퀴즈를 도전해보세요</p>
-                        <div className="bg-primary/10 rounded-xl p-4 mt-4">
-                            <p className="text-primary font-bold text-sm">🎉 오늘도 수고하셨습니다!</p>
-                            <p className="text-gray-600 text-xs mt-1">출석 체크와 포인트 내역은 계속 이용하실 수 있어요</p>
+                {/* Game Area - 항상 표시 */}
+                <div className="space-y-4">
+                    <Link 
+                        to={defaultBrand ? `/game/apple?brand=${defaultBrand.id}` : '#'} 
+                        className="group bg-white rounded-2xl p-6 flex items-center gap-4 shadow-sm hover:shadow-md transition-all active:scale-[0.98] touch-manipulation"
+                        onClick={(e) => {
+                            if (!defaultBrand) {
+                                e.preventDefault();
+                                alert('퀴즈를 불러오는 중입니다. 잠시만 기다려주세요.');
+                            }
+                        }}
+                    >
+                        <img src={appleIcon} alt="사과 게임" loading="lazy" className="h-[72px] w-auto object-contain group-hover:scale-105 transition-transform pointer-events-none" />
+                        <div className="flex-1 min-w-0">
+                            <h3 className="text-xl font-bold text-gray-800 mb-1 truncate">사과 게임</h3>
+                            <p className="text-gray-500 text-sm line-clamp-1">숫자10 만들고 글자 모으기</p>
                         </div>
-                    </div>
-                )}
+                        <ChevronRight className="text-primary size-6 flex-shrink-0" />
+                    </Link>
+
+                    <Link 
+                        to={defaultBrand ? `/game/wordle?brand=${defaultBrand.id}` : '#'} 
+                        className="group bg-white rounded-2xl p-6 flex items-center gap-4 shadow-sm hover:shadow-md transition-all active:scale-[0.98] touch-manipulation"
+                        onClick={(e) => {
+                            if (!defaultBrand) {
+                                e.preventDefault();
+                                alert('퀴즈를 불러오는 중입니다. 잠시만 기다려주세요.');
+                            }
+                        }}
+                    >
+                        <img src={wordleIcon} alt="워들 게임" loading="lazy" className="h-[72px] w-auto object-contain group-hover:scale-105 transition-transform pointer-events-none" />
+                        <div className="flex-1 min-w-0">
+                            <h3 className="text-xl font-bold text-gray-800 mb-1 truncate">워들 게임</h3>
+                            <p className="text-gray-500 text-sm line-clamp-1">가게명을 맞추고 포인트 받기</p>
+                        </div>
+                        <ChevronRight className="text-primary size-6 flex-shrink-0" />
+                    </Link>
+                </div>
 
                 {/* Utility Area */}
                 <div className="grid grid-cols-2 gap-4">
                     <Link to="/attendance" className="bg-white rounded-2xl p-6 flex flex-col items-center justify-center gap-4 shadow-sm hover:shadow-md transition-all active:scale-[0.98] min-h-[160px] touch-manipulation">
-                        <img src={checkIcon} alt="출석 미션" className="h-[72px] w-auto object-contain pointer-events-none" />
+                        <img src={checkIcon} alt="출석 미션" loading="lazy" className="h-[72px] w-auto object-contain pointer-events-none" />
                         <span className="font-bold text-gray-800 text-base text-center">출석 미션</span>
                     </Link>
 
                     <Link to="/points-history" className="bg-white rounded-2xl p-6 flex flex-col items-center justify-center gap-4 shadow-sm hover:shadow-md transition-all active:scale-[0.98] min-h-[160px] touch-manipulation">
-                        <img src={pointIcon} alt="적립 내역" className="h-[72px] w-auto object-contain pointer-events-none" />
+                        <img src={pointIcon} alt="적립 내역" loading="lazy" className="h-[72px] w-auto object-contain pointer-events-none" />
                         <span className="font-bold text-gray-800 text-base text-center">적립 내역</span>
                     </Link>
                 </div>

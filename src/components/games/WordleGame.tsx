@@ -63,32 +63,6 @@ const WordleGame: React.FC<WordleGameProps> = ({ brand, onComplete, onBack }) =>
         setTiles(allChars.sort(() => Math.random() - 0.5));
     }, [brand]);
 
-    // 게임 상태 초기화 함수
-    const resetGame = () => {
-        setGuesses(
-            Array(MAX_ATTEMPTS).fill(null).map(() =>
-                Array(wordLength).fill(null).map(() => ({ char: '', state: 'empty' }))
-            )
-        );
-        setCurrentRow(0);
-        setCurrentCol(0);
-        setGameState('playing');
-        setShowHelp(false);
-        setShakeRow(null);
-        setKeyStates({});
-        setShowMission(false);
-        setMissionAnswer('');
-        setMissionResult('none');
-        setShowHint(false);
-        setGameCompleted(false);
-        
-        // 타일 다시 섞기
-        const uniqueAnswerChars = [...new Set(brand.wordleAnswer)];
-        const neededDecoys = 21 - uniqueAnswerChars.length;
-        const allChars = [...uniqueAnswerChars, ...DECOY_CHARS.slice(0, neededDecoys)];
-        setTiles(allChars.sort(() => Math.random() - 0.5));
-    };
-
     const handleKeyPress = (char: string) => {
         if (gameState !== 'playing' || currentCol >= wordLength) return;
         const newGuesses = [...guesses];
@@ -169,6 +143,9 @@ const WordleGame: React.FC<WordleGameProps> = ({ brand, onComplete, onBack }) =>
     };
 
     const handleMissionSubmit = () => {
+        // 이미 제출했으면 중복 방지
+        if (missionResult !== 'none') return;
+        
         if (missionAnswer === brand.placeQuiz.answer) {
             setMissionResult('success');
             addPoints(5, `${brand.name} 워들 추가 미션 완료`); // 워들 추가미션 5P
@@ -231,6 +208,7 @@ const WordleGame: React.FC<WordleGameProps> = ({ brand, onComplete, onBack }) =>
                                 <img 
                                     src={brand.hintImage} 
                                     alt="힌트 이미지" 
+                                    loading="lazy"
                                     className="w-full h-full object-cover"
                                     onError={(e) => {
                                         e.currentTarget.style.display = 'none';
@@ -510,7 +488,8 @@ const WordleGame: React.FC<WordleGameProps> = ({ brand, onComplete, onBack }) =>
 
                             <button
                                 onClick={handleMissionSubmit}
-                                className="bg-[#ff6b6b] h-[50px] rounded-[12px] text-white font-black text-[20px] hover:bg-[#ff5252] transition-colors"
+                                disabled={missionResult !== 'none'}
+                                className="bg-[#ff6b6b] h-[50px] rounded-[12px] text-white font-black text-[20px] hover:bg-[#ff5252] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 제출하기
                             </button>
@@ -542,7 +521,7 @@ const WordleGame: React.FC<WordleGameProps> = ({ brand, onComplete, onBack }) =>
 
                         <div className="flex flex-col gap-[12px]">
                             <button
-                                onClick={resetGame}
+                                onClick={() => window.location.reload()}
                                 className="bg-[#ff6b6b] text-white font-semibold text-[16px] py-[12px] px-[24px] rounded-[8px] hover:bg-[#ff5252] transition-colors"
                             >
                                 다시 도전하기
