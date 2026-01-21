@@ -188,7 +188,7 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
     useEffect(() => {
         if (isFinished || grid.length === 0) return;
 
-        const hintTimer = setInterval(() => {
+        const hintTimer = setTimeout(() => {
             const timeSinceLastMove = Date.now() - lastMoveTime;
             
             if (timeSinceLastMove >= 20000) { // 20초 경과
@@ -199,12 +199,13 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
                     // 3초 후 힌트 자동 제거
                     setTimeout(() => {
                         setHintCells([]);
+                        setLastMoveTime(Date.now()); // 힌트 후 타이머 리셋
                     }, 3000);
                 }
             }
-        }, 1000);
+        }, 20000); // 20초 후 한 번만 실행
 
-        return () => clearInterval(hintTimer);
+        return () => clearTimeout(hintTimer);
     }, [lastMoveTime, isFinished, grid]);
 
     // 합이 10이 되는 조합 찾기
