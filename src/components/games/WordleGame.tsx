@@ -143,14 +143,19 @@ const WordleGame: React.FC<WordleGameProps> = ({ brand, onComplete, onBack }) =>
     };
 
     const handleMissionSubmit = () => {
-        // 이미 제출했으면 중복 방지
-        if (missionResult !== 'none') return;
+        // 성공했으면 중복 방지 (실패는 다시 시도 가능)
+        if (missionResult === 'success') return;
         
         if (missionAnswer === brand.placeQuiz.answer) {
             setMissionResult('success');
             addPoints(5, `${brand.name} 워들 추가 미션 완료`); // 워들 추가미션 5P
         } else {
             setMissionResult('fail');
+            // 실패 시 입력창 초기화 (2초 후)
+            setMissionAnswer('');
+            setTimeout(() => {
+                setMissionResult('none');
+            }, 2000);
         }
     };
 
@@ -488,12 +493,13 @@ const WordleGame: React.FC<WordleGameProps> = ({ brand, onComplete, onBack }) =>
 
                             <button
                                 onClick={handleMissionSubmit}
-                                disabled={missionResult !== 'none'}
+                                disabled={missionResult === 'success' || !missionAnswer.trim()}
                                 className="bg-[#ff6b6b] h-[50px] rounded-[12px] text-white font-black text-[20px] hover:bg-[#ff5252] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 제출하기
                             </button>
 
+                            {/* 인라인 결과 메시지 (사과 게임처럼) */}
                             {missionResult !== 'none' && (
                                 <div className={`text-center font-bold ${missionResult === 'success' ? 'text-[#4caf50]' : 'text-[#ff6b6b]'}`}>
                                     {missionResult === 'success' ? '정답입니다! 포인트가 적립되었습니다.' : '아쉬워요! 다시 도전해보세요.'}

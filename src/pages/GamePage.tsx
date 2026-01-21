@@ -41,12 +41,14 @@ const GamePage: React.FC = () => {
     const handleComplete = (earnedPoints: number) => {
         if (!brand) return;
         const gameType = type === 'wordle' ? '워들 게임' : '사과 게임';
-        addPoints(earnedPoints, `${brand.name} ${gameType} 완료`);
+        const gameTypeKey = type === 'wordle' ? 'wordle' : 'apple';
         
-        // 포인트를 받았을 때만 게임 완료로 기록
+        // 포인트 획득 여부와 관계없이 항상 게임 횟수 차감
+        recordGameCompletion(gameTypeKey as 'wordle' | 'apple');
+        
         if (earnedPoints > 0) {
-            recordGameCompletion();
-            // 퀴즈 완료 기록 (오늘 완료한 퀴즈 목록에 추가)
+            addPoints(earnedPoints, `${brand.name} ${gameType} 완료`);
+            // 포인트를 받았을 때만 퀴즈 완료로 기록 (오늘 완료한 퀴즈 목록에 추가)
             markBrandAsCompleted(brand.id);
         }
     };

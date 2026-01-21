@@ -72,6 +72,9 @@ const AttendancePage: React.FC = () => {
 
     const days = Array.from({ length: 30 }, (_, i) => i + 1);
     const today = new Date().getDate();
+    const currentMonth = new Date().getMonth() + 1; // 1-12
+    const currentYear = new Date().getFullYear();
+    const daysInMonth = new Date(currentYear, currentMonth, 0).getDate(); // 해당 월의 총 일수
 
     return (
         <div className="flex flex-col min-h-screen bg-[#fafafa]">
@@ -154,14 +157,14 @@ const AttendancePage: React.FC = () => {
                 {/* Calendar Grid */}
                 <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
                     <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-lg font-black text-gray-800">1월 출석 현황</h3>
+                        <h3 className="text-lg font-black text-gray-800">{currentMonth}월 출석 현황</h3>
                         <span className="text-primary font-bold bg-primary/10 px-3 py-1 rounded-full text-xs">
                             {checked ? '출석 1일차' : '오늘 출석 전'}
                         </span>
                     </div>
 
                     <div className="grid grid-cols-5 gap-3">
-                        {days.map(day => {
+                        {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
                             const isPast = day < today;
                             const isToday = day === today;
                             const isTodayChecked = isToday && checked;

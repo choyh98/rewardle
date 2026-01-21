@@ -11,8 +11,9 @@ import pointIcon from '../assets/point.png';
 import backgroundImage from '../assets/background.png';
 
 const LandingPage: React.FC = () => {
-    const { points, dailyGamesRemaining } = usePoints();
+    const { points, dailyGamesRemaining, gameHistory } = usePoints();
     const [defaultBrand, setDefaultBrand] = useState<Brand | null>(null);
+    const [showGameHistoryModal, setShowGameHistoryModal] = useState(false);
 
     useEffect(() => {
         const loadBrand = async () => {
@@ -49,12 +50,15 @@ const LandingPage: React.FC = () => {
                         <p className="mt-4 text-white/90 text-lg font-bold drop-shadow-sm">
                             간단한 미션 완료하고 리워드를 받아보세요
                         </p>
-                        {/* 일일 게임 횟수 표시 */}
-                        <div className="mt-3 bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 inline-block">
+                        {/* 일일 게임 횟수 표시 - 클릭 가능 */}
+                        <button
+                            onClick={() => setShowGameHistoryModal(true)}
+                            className="mt-3 bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 inline-block hover:bg-white/30 transition-colors active:scale-95"
+                        >
                             <p className="text-white/95 text-sm font-bold">
                                 오늘 남은 게임: {dailyGamesRemaining}/10
                             </p>
-                        </div>
+                        </button>
                     </motion.div>
                 </div>
 
@@ -130,6 +134,51 @@ const LandingPage: React.FC = () => {
                     </Link>
                 </div>
             </div>
+
+            {/* Game History Modal */}
+            {showGameHistoryModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6" onClick={() => setShowGameHistoryModal(false)}>
+                    <div className="bg-white rounded-[16px] p-[32px] max-w-[360px] w-full" onClick={(e) => e.stopPropagation()}>
+                        <h2 className="font-bold text-[24px] text-[#121212] mb-[20px] text-center">오늘 게임 참여 내역</h2>
+                        
+                        {gameHistory.length === 0 ? (
+                            <div className="text-center py-8">
+                                <p className="text-[#737373] text-[16px]">아직 참여한 게임이 없습니다.</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3 mb-6">
+                                {gameHistory.map((game, index) => (
+                                    <div key={index} className="flex items-center justify-between py-3 px-4 bg-[#f5f5f5] rounded-[12px]">
+                                        <div className="flex items-center gap-3">
+                                            <img 
+                                                src={game.gameType === 'apple' ? appleIcon : wordleIcon} 
+                                                alt={game.gameType === 'apple' ? '사과 게임' : '워들 게임'} 
+                                                className="h-[32px] w-auto object-contain"
+                                            />
+                                            <span className="font-semibold text-[16px] text-[#121212]">
+                                                {game.gameType === 'apple' ? '사과 게임' : '워들 게임'}
+                                            </span>
+                                        </div>
+                                        <span className="font-bold text-[16px] text-[#ff6b6b]">-1</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        <div className="flex items-center justify-between py-4 px-4 bg-[#fff0db] rounded-[12px] mb-6">
+                            <span className="font-bold text-[18px] text-[#121212]">남은 게임</span>
+                            <span className="font-black text-[24px] text-[#ff6b6b]">{dailyGamesRemaining}/10</span>
+                        </div>
+
+                        <button
+                            onClick={() => setShowGameHistoryModal(false)}
+                            className="w-full bg-[#ff6b6b] text-white font-semibold text-[16px] py-[12px] px-[24px] rounded-[8px] hover:bg-[#ff5252] transition-colors"
+                        >
+                            확인
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

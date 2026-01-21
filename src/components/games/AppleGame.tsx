@@ -85,7 +85,9 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
     const [quizSubmitted, setQuizSubmitted] = useState(false); // 퀴즈 제출 여부 추적
     const [hintCells, setHintCells] = useState<Cell[]>([]); // 힌트로 빛나는 셀들
     const [lastMoveTime, setLastMoveTime] = useState<number>(Date.now()); // 마지막 움직임 시간
-    const [gameCompleted, setGameCompleted] = useState(false); // 게임 완료 여부 추적
+    const [gameCompleted, setGameCompleted] = useState(false);
+    const [lastRevealScore, setLastRevealScore] = useState(0);
+    const [flyingSyllables, setFlyingSyllables] = useState<Array<{ syllable: string; id: number; fromX: number; fromY: number }>>([]); 
 
     const targetSyllables = brand.appleGameWord.split('');
 
@@ -107,12 +109,12 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
             newGrid.push(row);
         }
 
-        // 음절 배치 - 상단~중간(0~8행)에만 배치, 끝쪽(9~11행) 제외
+        // 음절 배치 - 전체 그리드에 랜덤하게 배치 (초기에는 숨김)
         const syllablePositions: Array<{ row: number; col: number }> = [];
         syllablesToPlace.forEach(s => {
             let placed = false;
             while (!placed) {
-                const r = Math.floor(Math.random() * 9); // 0~8행만 사용
+                const r = Math.floor(Math.random() * 12); // 전체 행 사용
                 const c = Math.floor(Math.random() * 8);
                 if (!newGrid[r][c].syllable) {
                     newGrid[r][c].syllable = s;
@@ -122,40 +124,21 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
             }
         });
 
-        // 글자가 있는 셀 주변에 쉬운 숫자 배치 (5가 많이, 합이 10이 되기 쉽게)
-        syllablePositions.forEach(pos => {
-            // 글자가 있는 셀은 5로 설정 (5+5=10으로 가장 쉬움)
-            newGrid[pos.row][pos.col].value = 5;
-            
-            // 주변 셀들도 쉬운 숫자로 채우기 (3x3 영역)
-            for (let dr = -1; dr <= 1; dr++) {
-                for (let dc = -1; dc <= 1; dc++) {
-                    const nr = pos.row + dr;
-                    const nc = pos.col + dc;
-                    if (nr >= 0 && nr < 12 && nc >= 0 && nc < 8 && newGrid[nr][nc].value === 0) {
-                        // 5, 4, 6 중에서 랜덤하게 (합이 10 만들기 쉬운 숫자들)
-                        const easyNumbers = [5, 5, 5, 4, 4, 6, 6, 3, 7];
-                        newGrid[nr][nc].value = easyNumbers[Math.floor(Math.random() * easyNumbers.length)];
-                    }
-                }
-            }
-        });
-
-        // 나머지 빈 칸 채우기 (합이 10이 되는 조합 위주)
+        // 숫자 배치 - 난이도 조정 (균형 잡힌 분포)
         const numbers: number[] = [];
-        const easyPairs = [
-            { num: 5, count: 20 },  // 5+5=10 (가장 쉬움, 더 많이)
-            { num: 4, count: 15 },  // 4+6=10
-            { num: 6, count: 15 },  // 6+4=10
-            { num: 3, count: 12 },  // 3+7=10
-            { num: 7, count: 12 },  // 7+3=10
-            { num: 2, count: 8 },   // 2+8=10
-            { num: 8, count: 8 },   // 8+2=10
-            { num: 1, count: 3 },   // 1+9=10 (어려움, 적게)
-            { num: 9, count: 3 }    // 9+1=10 (어려움, 적게)
+        const numberPairs = [
+            { num: 5, count: 11 },  // 5+5=10
+            { num: 4, count: 11 },  // 4+6=10
+            { num: 6, count: 11 },  // 6+4=10
+            { num: 3, count: 11 },  // 3+7=10
+            { num: 7, count: 11 },  // 7+3=10
+            { num: 2, count: 10 },  // 2+8=10
+            { num: 8, count: 10 },  // 8+2=10
+            { num: 1, count: 10 },  // 1+9=10
+            { num: 9, count: 10 }   // 9+1=10
         ];
 
-        easyPairs.forEach(({ num, count }) => {
+        numberPairs.forEach(({ num, count }) => {
             for (let i = 0; i < count; i++) {
                 numbers.push(num);
             }
@@ -167,14 +150,14 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
             [numbers[i], numbers[j]] = [numbers[j], numbers[i]];
         }
 
-        // 빈 칸에 숫자 채우기
+        // 모든 칸에 숫자 채우기
         let numberIndex = 0;
         for (let r = 0; r < 12; r++) {
             for (let c = 0; c < 8; c++) {
-                if (newGrid[r][c].value === 0 && numberIndex < numbers.length) {
+                if (numberIndex < numbers.length) {
                     newGrid[r][c].value = numbers[numberIndex++];
-                } else if (newGrid[r][c].value === 0) {
-                    // 숫자가 모자라면 5로 채우기 (가장 쉬운 숫자)
+                } else {
+                    // 숫자가 모자라면 5로 채우기
                     newGrid[r][c].value = 5;
                 }
             }
@@ -213,6 +196,10 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
                 const foundHint = findHintCombination();
                 if (foundHint) {
                     setHintCells(foundHint);
+                    // 3초 후 힌트 자동 제거
+                    setTimeout(() => {
+                        setHintCells([]);
+                    }, 3000);
                 }
             }
         }, 1000);
@@ -328,24 +315,86 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
         if (sum === 10) {
             const newGrid = [...grid];
             const newSyllables = [...collectedSyllables];
+            const newFlying: Array<{ syllable: string; id: number; fromX: number; fromY: number }> = [];
 
             selection.forEach(c => {
                 newGrid[c.row][c.col].isRemoved = true;
-                if (c.syllable) newSyllables.push(c.syllable);
+                if (c.syllable) {
+                    newSyllables.push(c.syllable);
+                    
+                    // 애니메이션용 위치 계산
+                    const cellElement = document.querySelector(`[data-row="${c.row}"][data-col="${c.col}"]`);
+                    if (cellElement) {
+                        const rect = cellElement.getBoundingClientRect();
+                        newFlying.push({
+                            syllable: c.syllable,
+                            id: Date.now() + Math.random(),
+                            fromX: rect.left + rect.width / 2,
+                            fromY: rect.top + rect.height / 2
+                        });
+                    }
+                }
             });
 
+            // 날아가는 애니메이션 시작
+            if (newFlying.length > 0) {
+                setFlyingSyllables(prev => [...prev, ...newFlying]);
+                setTimeout(() => {
+                    setFlyingSyllables(prev => prev.filter(f => !newFlying.find(nf => nf.id === f.id)));
+                }, 800);
+            }
+
+            const newScore = score + selection.length;
             setGrid(newGrid);
-            setScore(prev => prev + selection.length);
+            setScore(newScore);
             setCollectedSyllables(newSyllables);
             setHintCells([]); // 정답을 맞췄으므로 힌트 제거
             setLastMoveTime(Date.now()); // 타이머 리셋
 
+            // 2점마다 확률로 글자 자동 획득 + 애니메이션 (점수에 따라 확률 증가)
+            if (Math.floor(newScore / 2) > Math.floor(lastRevealScore / 2)) {
+                setLastRevealScore(newScore);
+                
+                // 아직 획득하지 않은 글자들 찾기
+                const remainingSyllables = targetSyllables.filter((ts, idx) => 
+                    collectedSyllables.filter(cs => cs === ts).length < targetSyllables.filter((s, i) => s === ts && i <= idx).length
+                );
+
+                // 점수에 따라 확률 증가: 10점 미만 30%, 10~19점 40%, 20점 이상 50%
+                let probability = 0.3; // 기본 30%
+                if (newScore >= 20) {
+                    probability = 0.5; // 50%
+                } else if (newScore >= 10) {
+                    probability = 0.4; // 40%
+                }
+
+                // 확률에 따라 글자 하나 자동 획득
+                if (remainingSyllables.length > 0 && Math.random() < probability) {
+                    const randomSyllable = remainingSyllables[Math.floor(Math.random() * remainingSyllables.length)];
+                    newSyllables.push(randomSyllable);
+                    setCollectedSyllables(newSyllables);
+                    
+                    // 화면 중앙에서 글자 모으기 칸으로 날아가는 애니메이션
+                    const flyingItem = {
+                        syllable: randomSyllable,
+                        id: Date.now() + Math.random(),
+                        fromX: window.innerWidth / 2,
+                        fromY: window.innerHeight / 2
+                    };
+                    setFlyingSyllables(prev => [...prev, flyingItem]);
+                    setTimeout(() => {
+                        setFlyingSyllables(prev => prev.filter(f => f.id !== flyingItem.id));
+                    }, 800);
+                }
+            }
+
             const allDone = targetSyllables.every(ts =>
                 newSyllables.filter(ns => ns === ts).length >= targetSyllables.filter(s => s === ts).length
             );
-            if (allDone && !showWordComplete) {
+            if (allDone && !showWordComplete && !gameCompleted) {
                 setShowWordComplete(true);
-                setScore(prev => prev + 3);
+                setGameCompleted(true); // 게임 완료 마킹
+                onComplete(5); // 5P 즉시 지급
             }
         } else {
             setIsStunned(true);
@@ -353,20 +402,25 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
             setTimeout(() => setIsStunned(false), 1000);
         }
         setSelection([]);
-    }, [isSelecting, selection, grid, collectedSyllables, targetSyllables, showWordComplete]);
+    }, [isSelecting, selection, grid, collectedSyllables, targetSyllables, showWordComplete, score, lastRevealScore, gameCompleted, onComplete]);
 
     const handleQuizSubmit = () => {
-        // 이미 제출했으면 중복 방지
-        if (quizSubmitted) return;
+        // 성공했으면 중복 방지 (실패는 다시 시도 가능)
+        if (quizSubmitted && quizResult?.correct) return;
         
-        setQuizSubmitted(true);
         const correct = quizAnswer.trim() === brand.placeQuiz.answer;
         if (correct) {
+            setQuizSubmitted(true);
             addPoints(5, `${brand.name} 사과 추가 미션 완료`); // 사과 추가미션 5P
+            setQuizResult({ correct });
+            setShowQuiz(false);
+            setShowQuizResult(true); // 성공 시에만 팝업
+        } else {
+            // 실패 시 인라인 메시지만 표시 (워들 게임처럼)
+            setQuizResult({ correct: false });
+            setQuizAnswer(''); // 입력값 초기화
+            setTimeout(() => setQuizResult(null), 2000); // 2초 후 메시지 숨김
         }
-        setQuizResult({ correct });
-        setShowQuiz(false);
-        setShowQuizResult(true);
     };
 
     const progress = ((120 - timeLeft) / 120) * 100;
@@ -411,7 +465,7 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
 
             {/* Syllable Tracker */}
             <div className="px-4 pb-3 flex items-center justify-center">
-                <div className="bg-white/90 rounded-[14px] px-3.5 py-2 flex items-center gap-2 shadow-sm">
+                <div className="syllable-tracker bg-white/90 rounded-[14px] px-3.5 py-2 flex items-center gap-2 shadow-sm">
                     <span className="font-bold text-[12px] text-[#666]">글자 모으기:</span>
                     <div className="flex gap-1">
                         {targetSyllables.map((s, i) => {
@@ -469,12 +523,6 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
                                                         {cell.value}
                                                     </span>
                                                 </div>
-                                                {/* 음절 */}
-                                                {cell.syllable && (
-                                                    <div className="absolute top-[1px] right-[1px] bg-[#ff6b6b] rounded-full size-[14px] flex items-center justify-center z-20 shadow-sm pointer-events-none">
-                                                        <span className="font-bold text-[9px] text-white leading-none">{cell.syllable}</span>
-                                                    </div>
-                                                )}
                                             </>
                                         )}
                                     </div>
@@ -493,31 +541,58 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
                 </div>
             )}
 
-            {/* Word Complete Popup */}
+            {/* Flying Syllables Animation */}
+            {flyingSyllables.map((flying) => {
+                // 글자 모으기 칸의 위치 계산
+                const targetElement = document.querySelector('.syllable-tracker');
+                const targetRect = targetElement?.getBoundingClientRect();
+                const toX = targetRect ? targetRect.left + targetRect.width / 2 : window.innerWidth / 2;
+                const toY = targetRect ? targetRect.top + targetRect.height / 2 : 100;
+
+                return (
+                    <div
+                        key={flying.id}
+                        className="fixed pointer-events-none z-[100]"
+                        style={{
+                            left: flying.fromX,
+                            top: flying.fromY,
+                            animation: `flyToTarget 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards`,
+                            '--target-x': `${toX - flying.fromX}px`,
+                            '--target-y': `${toY - flying.fromY}px`,
+                        } as React.CSSProperties}
+                    >
+                        <div className="bg-[#ff6b6b] rounded-full size-[32px] flex items-center justify-center shadow-lg">
+                            <span className="font-bold text-[18px] text-white">{flying.syllable}</span>
+                        </div>
+                    </div>
+                );
+            })}
+
+            {/* Word Complete Popup - 워들 스타일로 통일 */}
             {showWordComplete && (
-                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-6">
-                    <div className="bg-white rounded-[24px] p-8 max-w-[350px] w-full animate-[bounce_0.5s_ease-out]">
-                        <div className="flex flex-col items-center gap-6">
-                            <div className="text-[64px]">🎉</div>
-                            <h2 className="font-black text-[28px] text-[#ff6b6b] text-center">
-                                글씨를 다 모았어요!
-                            </h2>
-                            <div className="bg-[#fff0db] rounded-[16px] px-6 py-4">
-                                <p className="font-bold text-[32px] text-[#ff6b6b] text-center">
-                                    "{brand.appleGameWord}"
-                                </p>
-                            </div>
-                            <p className="text-[18px] text-[#666] text-center">
-                                5P 획득! 추가 미션으로 5P 더 받으세요!
-                            </p>
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6">
+                    <div className="bg-white rounded-[16px] p-[32px] max-w-[320px] text-center">
+                        <div className="mb-[20px]">
+                            <div className="text-[48px] mb-[12px]">🎉</div>
+                            <p className="font-bold text-[24px] text-[#28c52d] mb-[8px]">정답입니다!</p>
+                            <p className="font-semibold text-[20px] text-[#121212]">5포인트가 적립되었습니다.</p>
+                        </div>
+
+                        <div className="flex flex-col gap-[12px]">
                             <button
                                 onClick={() => {
                                     setShowWordComplete(false);
                                     setShowQuiz(true);
                                 }}
-                                className="bg-[#ff6b6b] h-[50px] rounded-[12px] text-white font-black text-[20px] hover:bg-[#ff5252] active:bg-[#e05555] transition-colors w-full"
+                                className="bg-[#ff6b6b] text-white font-semibold text-[16px] py-[12px] px-[24px] rounded-[8px] hover:bg-[#ff5252] transition-colors touch-manipulation"
                             >
-                                확인
+                                추가미션하고 5P 더 받기
+                            </button>
+                            <button
+                                onClick={onBack}
+                                className="text-[#737373] font-medium text-[14px] py-[8px] hover:text-[#121212] transition-colors touch-manipulation"
+                            >
+                                홈으로 가기
                             </button>
                         </div>
                     </div>
@@ -579,42 +654,44 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
 
                             <button
                                 onClick={handleQuizSubmit}
-                                disabled={quizSubmitted}
+                                disabled={(quizSubmitted && quizResult?.correct) || !quizAnswer.trim()}
                                 className="bg-[#ff6b6b] h-[50px] rounded-[12px] text-white font-black text-[20px] hover:bg-[#ff5252] active:bg-[#e05555] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 제출하기
                             </button>
+
+                            {/* 인라인 결과 메시지 (워들 게임처럼) */}
+                            {quizResult !== null && (
+                                <div className={`text-center font-bold ${quizResult.correct ? 'text-[#4caf50]' : 'text-[#ff6b6b]'}`}>
+                                    {quizResult.correct ? '정답입니다! 포인트가 적립되었습니다.' : '아쉬워요! 다시 도전해보세요.'}
+                                </div>
+                            )}
+                            {quizResult?.correct && (
+                                <button onClick={onBack} className="w-full mt-2 h-12 text-[#737373] font-medium hover:text-[#121212] transition-colors">
+                                    홈으로 돌아가기
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Quiz Result Popup */}
-            {showQuizResult && quizResult && (
-                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-6">
-                    <div className="bg-white rounded-[24px] p-8 max-w-[350px] w-full">
-                        <div className="flex flex-col items-center gap-6">
-                            <div className="text-[64px]">{quizResult.correct ? '🎉' : '😅'}</div>
-                            <h2 className={`font-black text-[28px] text-center ${quizResult.correct ? 'text-[#4caf50]' : 'text-[#ff6b6b]'}`}>
-                                {quizResult.correct ? '정답입니다!' : '아쉬워요!'}
-                            </h2>
-                            {!quizResult.correct && (
-                                <div className="bg-[#f5f5f5] rounded-[12px] px-4 py-3 w-full">
-                                    <p className="text-[16px] text-[#666] text-center">
-                                        정답: <span className="font-bold text-[#333]">{brand.placeQuiz.answer}</span>
-                                    </p>
-                                </div>
-                            )}
-                            {quizResult.correct && (
-                                <p className="text-[18px] text-[#666] text-center">
-                                    +{brand.placeQuiz.bonusPoints} 보너스 포인트!
-                                </p>
-                            )}
+            {/* Quiz Result Popup - 성공 시에만 표시 */}
+            {showQuizResult && quizResult?.correct && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6">
+                    <div className="bg-white rounded-[16px] p-[32px] max-w-[320px] text-center">
+                        <div className="mb-[20px]">
+                            <div className="text-[48px] mb-[12px]">🎉</div>
+                            <p className="font-bold text-[24px] text-[#28c52d] mb-[8px]">정답입니다!</p>
+                            <p className="font-semibold text-[20px] text-[#121212]">포인트가 적립되었습니다.</p>
+                        </div>
+
+                        <div className="flex flex-col gap-[12px]">
                             <button
                                 onClick={onBack}
-                                className="bg-[#ff6b6b] h-[50px] rounded-[12px] text-white font-black text-[20px] hover:bg-[#ff5252] active:bg-[#e05555] transition-colors w-full"
+                                className="bg-[#ff6b6b] text-white font-semibold text-[16px] py-[12px] px-[24px] rounded-[8px] hover:bg-[#ff5252] transition-colors touch-manipulation"
                             >
-                                확인
+                                홈으로 가기
                             </button>
                         </div>
                     </div>

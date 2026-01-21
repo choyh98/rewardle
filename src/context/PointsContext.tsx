@@ -5,9 +5,10 @@ interface PointsContextType {
     addPoints: (amount: number, reason: string) => void;
     history: Array<{ date: string; reason: string; amount: number }>;
     totalGamesPlayed: number;
-    recordGameCompletion: () => void;
+    recordGameCompletion: (gameType: 'wordle' | 'apple') => void;
     canPlayGame: () => boolean;
     dailyGamesRemaining: number;
+    gameHistory: Array<{ date: string; gameType: 'wordle' | 'apple' }>;
 }
 
 const PointsContext = createContext<PointsContextType | undefined>(undefined);
@@ -51,6 +52,22 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return { date: new Date().toDateString(), count: 0 };
     });
 
+    // 게임별 참여 내역 관리
+    const [gameHistory, setGameHistory] = useState<Array<{ date: string; gameType: 'wordle' | 'apple' }>>(() => {
+        try {
+            const saved = localStorage.getItem('rewardle_game_history');
+            if (saved) {
+                const data = JSON.parse(saved);
+                const today = new Date().toDateString();
+                // 오늘 날짜의 기록만 유지
+                return data.filter((item: { date: string }) => item.date === today);
+            }
+        } catch (error) {
+            console.error('Failed to load game history:', error);
+        }
+        return [];
+    });
+
     // totalGamesPlayed는 dailyGames.count와 동기화
     const totalGamesPlayed = dailyGames.count;
 
@@ -80,6 +97,14 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
     }, [dailyGames]);
 
+    useEffect(() => {
+        try {
+            localStorage.setItem('rewardle_game_history', JSON.stringify(gameHistory));
+        } catch (error) {
+            console.error('Failed to save game history:', error);
+        }
+    }, [gameHistory]);
+
     const addPoints = (amount: number, reason: string) => {
         setPoints(prev => prev + amount);
         // 0 포인트는 히스토리에 추가하지 않음
@@ -96,8 +121,11 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return dailyGames.count < DAILY_GAME_LIMIT;
     };
 
-    const recordGameCompletion = () => {
+    const recordGameCompletion = (gameType: 'wordle' | 'apple') => {
         const today = new Date().toDateString();
+        
+        // 게임 내역에 추가
+        setGameHistory(prev => [...prev, { date: today, gameType }]);
         
         if (dailyGames.date !== today) {
             // 새로운 날이면 초기화
@@ -118,7 +146,8 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             totalGamesPlayed, 
             recordGameCompletion,
             canPlayGame,
-            dailyGamesRemaining
+            dailyGamesRemaining,
+            gameHistory
         }}>
             {children}
         </PointsContext.Provider>

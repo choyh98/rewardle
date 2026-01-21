@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
+import logoImage from '../assets/logo.png';
 
 const LoginPage: React.FC = () => {
     const navigate = useNavigate();
@@ -69,10 +70,13 @@ const LoginPage: React.FC = () => {
             >
                 {/* Logo Section */}
                 <div className="mb-12 text-center">
-                    <div className="w-20 h-20 bg-primary rounded-3xl flex items-center justify-center shadow-lg mb-4 mx-auto">
-                        <span className="text-white text-4xl font-black">R</span>
+                    <div className="mb-6 mx-auto flex items-center justify-center">
+                        <img 
+                            src={logoImage} 
+                            alt="리워들 로고" 
+                            className="w-90 h-auto object-contain"
+                        />
                     </div>
-                    <h1 className="text-3xl font-black text-primary tracking-tight">리워들</h1>
                     <p className="text-gray-500 mt-2 font-medium">광고를 플레이하다, 혜택을 획득하다</p>
                 </div>
 
