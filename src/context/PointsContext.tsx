@@ -33,16 +33,6 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
     });
 
-    const [totalGamesPlayed, setTotalGamesPlayed] = useState<number>(() => {
-        try {
-            const saved = localStorage.getItem('rewardle_games_played');
-            return saved ? parseInt(saved) : 0;
-        } catch (error) {
-            console.error('Failed to load games played:', error);
-            return 0;
-        }
-    });
-
     // 일일 게임 플레이 횟수 관리
     const [dailyGames, setDailyGames] = useState<{ date: string; count: number }>(() => {
         try {
@@ -61,6 +51,9 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return { date: new Date().toDateString(), count: 0 };
     });
 
+    // totalGamesPlayed는 dailyGames.count와 동기화
+    const totalGamesPlayed = dailyGames.count;
+
     const DAILY_GAME_LIMIT = 10;
 
     useEffect(() => {
@@ -78,14 +71,6 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             console.error('Failed to save history:', error);
         }
     }, [history]);
-
-    useEffect(() => {
-        try {
-            localStorage.setItem('rewardle_games_played', totalGamesPlayed.toString());
-        } catch (error) {
-            console.error('Failed to save games played:', error);
-        }
-    }, [totalGamesPlayed]);
 
     useEffect(() => {
         try {
@@ -121,8 +106,6 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             // 같은 날이면 카운트 증가
             setDailyGames(prev => ({ ...prev, count: prev.count + 1 }));
         }
-        
-        setTotalGamesPlayed(prev => prev + 1);
     };
 
     const dailyGamesRemaining = Math.max(0, DAILY_GAME_LIMIT - (dailyGames.date === new Date().toDateString() ? dailyGames.count : 0));

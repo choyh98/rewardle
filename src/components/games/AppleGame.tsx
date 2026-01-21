@@ -92,69 +92,92 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
         const newGrid: Cell[][] = [];
         const syllablesToPlace = [...targetSyllables];
 
-        // 숫자를 균등하게 분배하기 위한 배열 생성 (합이 10이 되는 조합 강화)
-        const numbers: number[] = [];
-        const totalCells = 12 * 8; // 96 cells
-        
-        // 합이 10이 되는 쌍: (1,9), (2,8), (3,7), (4,6), (5,5)
-        // 이 숫자들을 조금 더 많이 배치 (자연스럽게)
-        const easyPairs = [
-            { num: 5, count: 13 },  // 5+5=10 (가장 쉬움)
-            { num: 4, count: 12 },  // 4+6=10
-            { num: 6, count: 12 },  // 6+4=10
-            { num: 3, count: 11 },  // 3+7=10
-            { num: 7, count: 11 },  // 7+3=10
-            { num: 2, count: 10 },  // 2+8=10
-            { num: 8, count: 10 },  // 8+2=10
-            { num: 1, count: 9 },   // 1+9=10
-            { num: 9, count: 9 }    // 9+1=10
-        ];
-
-        // 숫자 배열 생성
-        easyPairs.forEach(({ num, count }) => {
-            for (let i = 0; i < count; i++) {
-                numbers.push(num);
-            }
-        });
-
-        // 남은 칸이 있으면 랜덤하게 채우기
-        while (numbers.length < totalCells) {
-            numbers.push(Math.floor(Math.random() * 9) + 1);
-        }
-
-        // 배열을 섞기 (Fisher-Yates shuffle) - 티 안나게
-        for (let i = numbers.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [numbers[i], numbers[j]] = [numbers[j], numbers[i]];
-        }
-
-        // 그리드 생성
-        let numberIndex = 0;
+        // 빈 그리드 먼저 생성 (임시로 0으로 채움)
         for (let r = 0; r < 12; r++) {
             const row: Cell[] = [];
             for (let c = 0; c < 8; c++) {
                 row.push({
                     row: r,
                     col: c,
-                    value: numbers[numberIndex++],
+                    value: 0,
                     isRemoved: false
                 });
             }
             newGrid.push(row);
         }
 
-        // 음절 배치 (기존과 동일)
+        // 음절 배치 - 상단~중간(0~8행)에만 배치, 끝쪽(9~11행) 제외
+        const syllablePositions: Array<{ row: number; col: number }> = [];
         syllablesToPlace.forEach(s => {
             let placed = false;
             while (!placed) {
-                const r = Math.floor(Math.random() * 12);
+                const r = Math.floor(Math.random() * 9); // 0~8행만 사용
                 const c = Math.floor(Math.random() * 8);
                 if (!newGrid[r][c].syllable) {
                     newGrid[r][c].syllable = s;
+                    syllablePositions.push({ row: r, col: c });
                     placed = true;
                 }
             }
         });
+
+        // 글자가 있는 셀 주변에 쉬운 숫자 배치 (5가 많이, 합이 10이 되기 쉽게)
+        syllablePositions.forEach(pos => {
+            // 글자가 있는 셀은 5로 설정 (5+5=10으로 가장 쉬움)
+            newGrid[pos.row][pos.col].value = 5;
+            
+            // 주변 셀들도 쉬운 숫자로 채우기 (3x3 영역)
+            for (let dr = -1; dr <= 1; dr++) {
+                for (let dc = -1; dc <= 1; dc++) {
+                    const nr = pos.row + dr;
+                    const nc = pos.col + dc;
+                    if (nr >= 0 && nr < 12 && nc >= 0 && nc < 8 && newGrid[nr][nc].value === 0) {
+                        // 5, 4, 6 중에서 랜덤하게 (합이 10 만들기 쉬운 숫자들)
+                        const easyNumbers = [5, 5, 5, 4, 4, 6, 6, 3, 7];
+                        newGrid[nr][nc].value = easyNumbers[Math.floor(Math.random() * easyNumbers.length)];
+                    }
+                }
+            }
+        });
+
+        // 나머지 빈 칸 채우기 (합이 10이 되는 조합 위주)
+        const numbers: number[] = [];
+        const easyPairs = [
+            { num: 5, count: 20 },  // 5+5=10 (가장 쉬움, 더 많이)
+            { num: 4, count: 15 },  // 4+6=10
+            { num: 6, count: 15 },  // 6+4=10
+            { num: 3, count: 12 },  // 3+7=10
+            { num: 7, count: 12 },  // 7+3=10
+            { num: 2, count: 8 },   // 2+8=10
+            { num: 8, count: 8 },   // 8+2=10
+            { num: 1, count: 3 },   // 1+9=10 (어려움, 적게)
+            { num: 9, count: 3 }    // 9+1=10 (어려움, 적게)
+        ];
+
+        easyPairs.forEach(({ num, count }) => {
+            for (let i = 0; i < count; i++) {
+                numbers.push(num);
+            }
+        });
+
+        // 배열 섞기
+        for (let i = numbers.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [numbers[i], numbers[j]] = [numbers[j], numbers[i]];
+        }
+
+        // 빈 칸에 숫자 채우기
+        let numberIndex = 0;
+        for (let r = 0; r < 12; r++) {
+            for (let c = 0; c < 8; c++) {
+                if (newGrid[r][c].value === 0 && numberIndex < numbers.length) {
+                    newGrid[r][c].value = numbers[numberIndex++];
+                } else if (newGrid[r][c].value === 0) {
+                    // 숫자가 모자라면 5로 채우기 (가장 쉬운 숫자)
+                    newGrid[r][c].value = 5;
+                }
+            }
+        }
 
         setGrid(newGrid);
     }, [brand]);

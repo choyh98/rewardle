@@ -63,6 +63,32 @@ const WordleGame: React.FC<WordleGameProps> = ({ brand, onComplete, onBack }) =>
         setTiles(allChars.sort(() => Math.random() - 0.5));
     }, [brand]);
 
+    // 게임 상태 초기화 함수
+    const resetGame = () => {
+        setGuesses(
+            Array(MAX_ATTEMPTS).fill(null).map(() =>
+                Array(wordLength).fill(null).map(() => ({ char: '', state: 'empty' }))
+            )
+        );
+        setCurrentRow(0);
+        setCurrentCol(0);
+        setGameState('playing');
+        setShowHelp(false);
+        setShakeRow(null);
+        setKeyStates({});
+        setShowMission(false);
+        setMissionAnswer('');
+        setMissionResult('none');
+        setShowHint(false);
+        setGameCompleted(false);
+        
+        // 타일 다시 섞기
+        const uniqueAnswerChars = [...new Set(brand.wordleAnswer)];
+        const neededDecoys = 21 - uniqueAnswerChars.length;
+        const allChars = [...uniqueAnswerChars, ...DECOY_CHARS.slice(0, neededDecoys)];
+        setTiles(allChars.sort(() => Math.random() - 0.5));
+    };
+
     const handleKeyPress = (char: string) => {
         if (gameState !== 'playing' || currentCol >= wordLength) return;
         const newGuesses = [...guesses];
@@ -511,22 +537,21 @@ const WordleGame: React.FC<WordleGameProps> = ({ brand, onComplete, onBack }) =>
                         <div className="mb-[20px]">
                             <div className="text-[48px] mb-[12px]">💭</div>
                             <p className="font-bold text-[24px] text-[#ff8800] mb-[8px]">아쉬워요!</p>
-                            <p className="font-medium text-[16px] text-[#121212] mb-[12px]">정답: {brand.wordleAnswer.join('')}</p>
-                            <p className="font-normal text-[14px] text-[#737373]">힌트를 확인하고 다시 도전해보세요!</p>
+                            <p className="font-normal text-[14px] text-[#737373]">다시 도전해보세요!</p>
                         </div>
 
                         <div className="flex flex-col gap-[12px]">
                             <button
-                                onClick={() => window.location.reload()}
+                                onClick={resetGame}
                                 className="bg-[#ff6b6b] text-white font-semibold text-[16px] py-[12px] px-[24px] rounded-[8px] hover:bg-[#ff5252] transition-colors"
                             >
                                 다시 도전하기
                             </button>
                             <button
-                                onClick={() => setShowHint(true)}
-                                className="bg-[#f0f0f0] text-[#121212] font-medium text-[16px] py-[12px] px-[24px] rounded-[8px] hover:bg-[#e0e0e0] transition-colors"
+                                onClick={onBack}
+                                className="text-[#737373] font-medium text-[14px] py-[8px] hover:text-[#121212] transition-colors touch-manipulation"
                             >
-                                힌트 보기
+                                홈으로 가기
                             </button>
                         </div>
                     </div>
