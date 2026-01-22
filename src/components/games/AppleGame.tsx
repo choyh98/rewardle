@@ -91,6 +91,7 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
     const [gameCompleted, setGameCompleted] = useState(false);
     const [lastRevealScore, setLastRevealScore] = useState(0);
     const [flyingSyllables, setFlyingSyllables] = useState<Array<{ syllable: string; id: number; fromX: number; fromY: number }>>([]); 
+    const [gridScale, setGridScale] = useState(1); // 보드판 확대/축소
 
     const targetSyllables = brand.appleGameWord.split('');
 
@@ -127,18 +128,18 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
             }
         });
 
-        // 숫자 배치 - 난이도 조정 (합이 10이 나올 확률 증가)
+        // 숫자 배치 - 난이도 조정 (합이 10이 나올 확률 더욱 증가)
         const numbers: number[] = [];
         const numberPairs = [
-            { num: 5, count: 18 },  // 5+5=10 (증가!)
-            { num: 4, count: 14 },  // 4+6=10 (증가!)
-            { num: 6, count: 14 },  // 6+4=10 (증가!)
-            { num: 3, count: 12 },  // 3+7=10 (증가!)
-            { num: 7, count: 12 },  // 7+3=10 (증가!)
-            { num: 2, count: 8 },   // 2+8=10
-            { num: 8, count: 8 },   // 8+2=10
-            { num: 1, count: 4 },   // 1+9=10 (감소)
-            { num: 9, count: 4 }    // 9+1=10 (감소)
+            { num: 5, count: 24 },  // 5+5=10 (더 증가!)
+            { num: 4, count: 16 },  // 4+6=10 (더 증가!)
+            { num: 6, count: 16 },  // 6+4=10 (더 증가!)
+            { num: 3, count: 10 },  // 3+7=10
+            { num: 7, count: 10 },  // 7+3=10
+            { num: 2, count: 6 },   // 2+8=10
+            { num: 8, count: 6 },   // 8+2=10
+            { num: 1, count: 2 },   // 1+9=10 (더 감소)
+            { num: 9, count: 2 }    // 9+1=10 (더 감소)
         ];
 
         numberPairs.forEach(({ num, count }) => {
@@ -173,7 +174,8 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
         if (timeLeft > 0 && !isFinished) {
             const timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
             return () => clearInterval(timer);
-        } else if (timeLeft === 0 && !isFinished && !gameCompleted) {
+        } else if (timeLeft === 0 && !isFinished && !gameCompleted && !showQuiz) {
+            // 퀴즈 중이 아닐 때만 시간 종료 처리
             setIsFinished(true);
             setGameCompleted(true);
             
@@ -185,7 +187,7 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
             // 글자를 다 모았으면 5P, 1개라도 못 모았으면 0P
             onComplete(allSyllablesCollected ? 5 : 0);
         }
-    }, [timeLeft, isFinished, gameCompleted, onComplete, collectedSyllables, targetSyllables]);
+    }, [timeLeft, isFinished, gameCompleted, onComplete, collectedSyllables, targetSyllables, showQuiz]);
 
     // 20초 동안 움직임이 없으면 힌트 제공
     useEffect(() => {
@@ -350,8 +352,8 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
             setHintCells([]); // 정답을 맞췄으므로 힌트 제거
             setLastMoveTime(Date.now()); // 타이머 리셋
 
-            // 2점마다 확률로 글자 자동 획득 + 애니메이션 (점수에 따라 확률 증가)
-            if (Math.floor(newScore / 2) > Math.floor(lastRevealScore / 2)) {
+            // 4점마다 확률로 글자 자동 획득 (점수에 따라 확률 증가)
+            if (Math.floor(newScore / 4) > Math.floor(lastRevealScore / 4)) {
                 setLastRevealScore(newScore);
                 
                 // 아직 획득하지 않은 글자들 찾기
@@ -359,12 +361,10 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
                     collectedSyllables.filter(cs => cs === ts).length < targetSyllables.filter((s, i) => s === ts && i <= idx).length
                 );
 
-                // 점수에 따라 확률 증가: 10점 미만 30%, 10~19점 40%, 20점 이상 50%
+                // 점수에 따라 확률 증가: 20점 미만 30%, 20점 이상 60%
                 let probability = 0.3; // 기본 30%
                 if (newScore >= 20) {
-                    probability = 0.5; // 50%
-                } else if (newScore >= 10) {
-                    probability = 0.4; // 40%
+                    probability = 0.6; // 60%
                 }
 
                 // 확률에 따라 글자 하나 자동 획득
@@ -397,9 +397,8 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
                 onComplete(5); // 5P 즉시 지급
             }
         } else {
-            setIsStunned(true);
-            setLastMoveTime(Date.now()); // 실패해도 타이머 리셋
-            setTimeout(() => setIsStunned(false), 1000);
+            // 합이 10이 아니면 선택만 초기화 (보드 안 깨짐)
+            setLastMoveTime(Date.now());
         }
         setSelection([]);
     }, [isSelecting, selection, grid, collectedSyllables, targetSyllables, showWordComplete, score, lastRevealScore, gameCompleted, onComplete]);
@@ -411,10 +410,9 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
         const correct = quizAnswer.trim() === brand.placeQuiz.answer;
         if (correct) {
             setQuizSubmitted(true);
+            setIsFinished(true); // 타이머 중지
             addPoints(5, `${brand.name} 사과 추가 미션 완료`); // 사과 추가미션 5P
             setQuizResult({ correct });
-            setShowQuiz(false);
-            // 성공 시 자동으로 미션 완료 처리됨
         } else {
             // 실패 시 인라인 메시지만 표시 (워들 게임처럼)
             setQuizResult({ correct: false });
@@ -464,7 +462,7 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
             </div>
 
             {/* Syllable Tracker */}
-            <div className="px-4 pb-3 flex items-center justify-center">
+            <div className="px-4 pb-3 flex items-center justify-center gap-2">
                 <div className="syllable-tracker bg-white/90 rounded-[14px] px-3.5 py-2 flex items-center gap-2 shadow-sm">
                     <span className="font-bold text-[12px] text-[#666]">글자 모으기:</span>
                     <div className="flex gap-1">
@@ -488,11 +486,32 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
                         ({collectedSyllables.length}/{brand.appleGameWord.length})
                     </span>
                 </div>
+                
+                {/* 확대/축소 버튼 */}
+                <div className="flex gap-1 bg-white/90 rounded-[14px] px-2 py-2 shadow-sm">
+                    <button
+                        onClick={() => setGridScale(prev => Math.max(0.8, prev - 0.1))}
+                        className="bg-[#ff6b6b] text-white font-bold rounded-[6px] size-[26px] flex items-center justify-center active:scale-95 transition-transform"
+                        disabled={gridScale <= 0.8}
+                    >
+                        <span className="text-[16px]">-</span>
+                    </button>
+                    <button
+                        onClick={() => setGridScale(prev => Math.min(1.2, prev + 0.1))}
+                        className="bg-[#ff6b6b] text-white font-bold rounded-[6px] size-[26px] flex items-center justify-center active:scale-95 transition-transform"
+                        disabled={gridScale >= 1.2}
+                    >
+                        <span className="text-[16px]">+</span>
+                    </button>
+                </div>
             </div>
 
             {/* Grid */}
-            <div className={`flex-1 flex items-start justify-center px-4 pt-2 pb-4 ${isStunned ? 'opacity-50' : ''}`}>
-                <div className="flex flex-col gap-[5px]">
+            <div className="flex-1 flex items-center justify-center px-4 pt-2 pb-4 overflow-hidden">
+                <div 
+                    className="flex flex-col gap-[5px] transition-transform duration-200 origin-center"
+                    style={{ transform: `scale(${gridScale})` }}
+                >
                     {grid.map((row) => (
                         <div key={row[0]?.row} className="flex gap-[5px]">
                             {row.map((cell) => {
