@@ -43,13 +43,6 @@ const GamePage: React.FC = () => {
     useEffect(() => {
         if (!brand || gameCompleted) return;
 
-        const handleBeforeUnload = () => {
-            if (!gameCompleted) {
-                const gameTypeKey = type === 'wordle' ? 'wordle' : 'apple';
-                recordGameCompletion(gameTypeKey as 'wordle' | 'apple', brand.id);
-            }
-        };
-
         // 페이지 언마운트 시 실행
         return () => {
             if (!gameCompleted) {
