@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import WordleGame from '../components/games/WordleGame';
 import AppleGame from '../components/games/AppleGame';
@@ -12,7 +12,7 @@ const GamePage: React.FC = () => {
     const { addPoints, recordGameCompletion, canPlayGame } = usePoints();
     const [isLoading, setIsLoading] = useState(true);
     const [brand, setBrand] = useState<Brand | null>(null);
-    const [gameCompleted, setGameCompleted] = useState(false);
+    const hasRecorded = useRef(false); // 중복 차감 방지
 
     const brandId = searchParams.get('brand') || 'aquagarden';
 
@@ -39,28 +39,18 @@ const GamePage: React.FC = () => {
         loadBrandAndCheckLimit();
     }, [brandId, canPlayGame, navigate]);
 
-    // 게임 도중 페이지를 떠날 때 횟수 차감 (뒤로가기 등)
-    useEffect(() => {
-        if (!brand || gameCompleted) return;
-
-        // 페이지 언마운트 시 실행
-        return () => {
-            if (!gameCompleted) {
-                const gameTypeKey = type === 'wordle' ? 'wordle' : 'apple';
-                recordGameCompletion(gameTypeKey as 'wordle' | 'apple', brand.id);
-            }
-        };
-    }, [brand, gameCompleted, type, recordGameCompletion]);
+    // 게임 횟수 차감 함수
+    const handleDeductPlay = () => {
+        if (!brand || hasRecorded.current) return;
+        hasRecorded.current = true;
+        const gameTypeKey = type === 'wordle' ? 'wordle' : 'apple';
+        recordGameCompletion(gameTypeKey as 'wordle' | 'apple', brand.id);
+    };
 
     const handleComplete = (earnedPoints: number) => {
-        if (!brand || gameCompleted) return;
+        if (!brand) return;
         
         const gameType = type === 'wordle' ? '워들 게임' : '사과 게임';
-        const gameTypeKey = type === 'wordle' ? 'wordle' : 'apple';
-        
-        // 게임 완료 시점에 횟수 차감
-        recordGameCompletion(gameTypeKey as 'wordle' | 'apple', brand.id);
-        setGameCompleted(true);
         
         if (earnedPoints > 0) {
             addPoints(earnedPoints, `${brand.name} ${gameType} 완료`);
@@ -87,11 +77,11 @@ const GamePage: React.FC = () => {
     }
 
     if (type === 'wordle') {
-        return <WordleGame brand={brand} onComplete={handleComplete} onBack={handleBack} />;
+        return <WordleGame brand={brand} onComplete={handleComplete} onBack={handleBack} onDeductPlay={handleDeductPlay} />;
     }
 
     if (type === 'apple') {
-        return <AppleGame brand={brand} onComplete={handleComplete} onBack={handleBack} />;
+        return <AppleGame brand={brand} onComplete={handleComplete} onBack={handleBack} onDeductPlay={handleDeductPlay} />;
     }
 
     return (

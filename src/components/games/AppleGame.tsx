@@ -16,6 +16,7 @@ interface AppleGameProps {
     brand: Brand;
     onComplete: (points: number) => void;
     onBack: () => void;
+    onDeductPlay: () => void; // 게임 횟수 차감 콜백
 }
 
 interface Cell {
@@ -66,7 +67,7 @@ const StartScreen: React.FC<{ onStart: () => void; onShowHelp: () => void; onBac
 };
 
 // Game Screen Component  
-const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ brand, onComplete, onBack, onShowHelp }) => {
+const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ brand, onComplete, onBack, onDeductPlay, onShowHelp }) => {
     const { addPoints } = usePoints(); // Context에서 직접 addPoints 가져오기
     const [grid, setGrid] = useState<Cell[][]>([]);
     const [score, setScore] = useState(0);
@@ -586,7 +587,10 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
                                 추가미션하고 5P 더 받기
                             </button>
                             <button
-                                onClick={onBack}
+                                onClick={() => {
+                                    onDeductPlay(); // 성공 후 홈으로 가기 시 차감
+                                    onBack();
+                                }}
                                 className="text-[#737373] font-medium text-[14px] py-[8px] hover:text-[#121212] transition-colors touch-manipulation"
                             >
                                 홈으로 가기
@@ -657,7 +661,13 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
                                 </div>
                             )}
                             {quizResult?.correct && (
-                                <button onClick={onBack} className="w-full mt-2 h-12 text-[#737373] font-medium hover:text-[#121212] transition-colors">
+                                <button 
+                                    onClick={() => {
+                                        onDeductPlay(); // 추가미션 완료 후 홈으로 돌아가기 시 차감
+                                        onBack();
+                                    }} 
+                                    className="w-full mt-2 h-12 text-[#737373] font-medium hover:text-[#121212] transition-colors"
+                                >
                                     홈으로 돌아가기
                                 </button>
                             )}
@@ -702,13 +712,19 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
 
                             <div className="flex flex-col gap-[12px]">
                                 <button
-                                    onClick={() => window.location.reload()}
+                                    onClick={() => {
+                                        onDeductPlay(); // 실패 시 다시 도전하기 클릭 시 차감
+                                        window.location.reload();
+                                    }}
                                     className="bg-[#ff6b6b] text-white font-semibold text-[16px] py-[12px] px-[24px] rounded-[8px] hover:bg-[#ff5252] transition-colors"
                                 >
                                     다시 도전하기
                                 </button>
                                 <button
-                                    onClick={onBack}
+                                    onClick={() => {
+                                        onDeductPlay(); // 실패 시 홈으로 가기 클릭 시 차감
+                                        onBack();
+                                    }}
                                     className="text-[#737373] font-medium text-[14px] py-[8px] hover:text-[#121212] transition-colors touch-manipulation"
                                 >
                                     홈으로 가기
@@ -869,7 +885,7 @@ const HelpModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 };
 
 // Main Component
-const AppleGame: React.FC<AppleGameProps> = ({ brand, onComplete, onBack }) => {
+const AppleGame: React.FC<AppleGameProps> = ({ brand, onComplete, onBack, onDeductPlay }) => {
     const [gameState, setGameState] = useState<'start' | 'playing'>('start');
     const [showHelp, setShowHelp] = useState(false);
 
@@ -887,6 +903,7 @@ const AppleGame: React.FC<AppleGameProps> = ({ brand, onComplete, onBack }) => {
                     brand={brand}
                     onComplete={onComplete}
                     onBack={onBack}
+                    onDeductPlay={onDeductPlay}
                     onShowHelp={() => setShowHelp(true)}
                 />
             )}

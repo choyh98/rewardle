@@ -15,6 +15,7 @@ interface WordleGameProps {
     brand: Brand;
     onComplete: (points: number) => void;
     onBack: () => void;
+    onDeductPlay: () => void; // 게임 횟수 차감 콜백
 }
 
 type CellState = 'empty' | 'filled' | 'correct' | 'present' | 'absent';
@@ -33,7 +34,7 @@ const DECOY_CHARS = [
     '포', '인', '워', '프', '캐', '시', '티', '크', '런', '워','아'
 ];
 
-const WordleGame: React.FC<WordleGameProps> = ({ brand, onComplete, onBack }) => {
+const WordleGame: React.FC<WordleGameProps> = ({ brand, onComplete, onBack, onDeductPlay }) => {
     const { addPoints } = usePoints(); // Context에서 직접 addPoints 가져오기
     const MAX_ATTEMPTS = 6; // 최대 시도 횟수
     const wordLength = brand.wordleAnswer.length; // 매장명 길이
@@ -441,7 +442,10 @@ const WordleGame: React.FC<WordleGameProps> = ({ brand, onComplete, onBack }) =>
                                 추가미션하고 5P 더 받기
                             </button>
                             <button
-                                onClick={onBack}
+                                onClick={() => {
+                                    onDeductPlay(); // 성공 후 홈으로 가기 시 차감
+                                    onBack();
+                                }}
                                 className="text-[#737373] font-medium text-[14px] py-[8px] hover:text-[#121212] transition-colors touch-manipulation"
                             >
                                 홈으로 가기
@@ -506,7 +510,13 @@ const WordleGame: React.FC<WordleGameProps> = ({ brand, onComplete, onBack }) =>
                                 </div>
                             )}
                             {missionResult === 'success' && (
-                                <button onClick={onBack} className="w-full mt-2 h-12 text-[#737373] font-medium hover:text-[#121212] transition-colors">
+                                <button 
+                                    onClick={() => {
+                                        onDeductPlay(); // 추가미션 완료 후 홈으로 돌아가기 시 차감
+                                        onBack();
+                                    }} 
+                                    className="w-full mt-2 h-12 text-[#737373] font-medium hover:text-[#121212] transition-colors"
+                                >
                                     홈으로 돌아가기
                                 </button>
                             )}
@@ -527,13 +537,19 @@ const WordleGame: React.FC<WordleGameProps> = ({ brand, onComplete, onBack }) =>
 
                         <div className="flex flex-col gap-[12px]">
                             <button
-                                onClick={() => window.location.reload()}
+                                onClick={() => {
+                                    onDeductPlay(); // 다시 도전 시 차감
+                                    window.location.reload();
+                                }}
                                 className="bg-[#ff6b6b] text-white font-semibold text-[16px] py-[12px] px-[24px] rounded-[8px] hover:bg-[#ff5252] transition-colors"
                             >
                                 다시 도전하기
                             </button>
                             <button
-                                onClick={onBack}
+                                onClick={() => {
+                                    onDeductPlay(); // 홈으로 가기 시 차감
+                                    onBack();
+                                }}
                                 className="text-[#737373] font-medium text-[14px] py-[8px] hover:text-[#121212] transition-colors touch-manipulation"
                             >
                                 홈으로 가기
