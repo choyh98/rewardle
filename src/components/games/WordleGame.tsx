@@ -321,9 +321,9 @@ const WordleGame: React.FC<WordleGameProps> = ({ brand, onComplete, onBack, onDe
                     <button
                         onClick={handleEnter}
                         disabled={gameState !== 'playing'}
-                        className="bg-[#d4d4d4] flex items-center justify-center h-[50px] px-[20px] rounded-[6px] hover:bg-[#c4c4c4] active:scale-95 transition-all disabled:opacity-50"
+                        className="bg-[#FF6B6B] flex items-center justify-center h-[58px] px-[24px] rounded-[6px] hover:bg-[#ff5252] active:scale-95 transition-all disabled:opacity-50"
                     >
-                        <p className="font-semibold text-[14px] text-black">확인</p>
+                        <p className="font-bold text-[16px] text-white">확인</p>
                     </button>
 
                     {tiles.slice(21).map((char, charIndex) => (
@@ -340,9 +340,9 @@ const WordleGame: React.FC<WordleGameProps> = ({ brand, onComplete, onBack, onDe
                     <button
                         onClick={handleDelete}
                         disabled={gameState !== 'playing'}
-                        className="bg-[#d4d4d4] flex items-center justify-center h-[50px] px-[20px] rounded-[6px] hover:bg-[#c4c4c4] active:scale-95 transition-all disabled:opacity-50"
+                        className="bg-[#FF6B6B] flex items-center justify-center h-[58px] px-[24px] rounded-[6px] hover:bg-[#ff5252] active:scale-95 transition-all disabled:opacity-50"
                     >
-                        <p className="font-semibold text-[14px] text-black">←</p>
+                        <p className="font-bold text-[18px] text-white">←</p>
                     </button>
                 </div>
             </div>

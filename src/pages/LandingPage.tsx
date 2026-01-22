@@ -40,7 +40,7 @@ const LandingPage: React.FC = () => {
             <div className="relative w-full h-[320px] overflow-hidden bg-gradient-to-br from-primary to-[#bb003c]">
                 {/* Background Image */}
                 <div 
-                    className="absolute inset-0 bg-cover bg-center opacity-30"
+                    className="absolute inset-0 bg-cover bg-center opacity-40"
                     style={{ backgroundImage: `url(${backgroundImage})` }}
                 />
                 
@@ -98,24 +98,6 @@ const LandingPage: React.FC = () => {
                 {/* Game Area - 항상 표시 */}
                 <div className="space-y-4">
                     <Link 
-                        to={defaultBrand ? `/game/apple?brand=${defaultBrand.id}` : '#'} 
-                        className="group bg-white rounded-2xl p-6 flex items-center gap-4 shadow-sm hover:shadow-md transition-all active:scale-[0.98] touch-manipulation"
-                        onClick={(e) => {
-                            if (!defaultBrand) {
-                                e.preventDefault();
-                                alert('퀴즈를 불러오는 중입니다. 잠시만 기다려주세요.');
-                            }
-                        }}
-                    >
-                        <img src={appleIcon} alt="사과 게임" loading="lazy" className="h-[72px] w-auto object-contain group-hover:scale-105 transition-transform pointer-events-none" />
-                        <div className="flex-1 min-w-0">
-                            <h3 className="text-xl font-bold text-gray-800 mb-1 truncate">사과 게임</h3>
-                            <p className="text-gray-500 text-sm line-clamp-1">숫자10 만들고 글자 모으기</p>
-                        </div>
-                        <ChevronRight className="text-primary size-6 flex-shrink-0" />
-                    </Link>
-
-                    <Link 
                         to={defaultBrand ? `/game/wordle?brand=${defaultBrand.id}` : '#'} 
                         className="group bg-white rounded-2xl p-6 flex items-center gap-4 shadow-sm hover:shadow-md transition-all active:scale-[0.98] touch-manipulation"
                         onClick={(e) => {
@@ -129,6 +111,24 @@ const LandingPage: React.FC = () => {
                         <div className="flex-1 min-w-0">
                             <h3 className="text-xl font-bold text-gray-800 mb-1 truncate">워들 게임</h3>
                             <p className="text-gray-500 text-sm line-clamp-1">가게명을 맞추고 포인트 받기</p>
+                        </div>
+                        <ChevronRight className="text-primary size-6 flex-shrink-0" />
+                    </Link>
+
+                    <Link 
+                        to={defaultBrand ? `/game/apple?brand=${defaultBrand.id}` : '#'} 
+                        className="group bg-white rounded-2xl p-6 flex items-center gap-4 shadow-sm hover:shadow-md transition-all active:scale-[0.98] touch-manipulation"
+                        onClick={(e) => {
+                            if (!defaultBrand) {
+                                e.preventDefault();
+                                alert('퀴즈를 불러오는 중입니다. 잠시만 기다려주세요.');
+                            }
+                        }}
+                    >
+                        <img src={appleIcon} alt="사과 게임" loading="lazy" className="h-[72px] w-auto object-contain group-hover:scale-105 transition-transform pointer-events-none" />
+                        <div className="flex-1 min-w-0">
+                            <h3 className="text-xl font-bold text-gray-800 mb-1 truncate">사과 게임</h3>
+                            <p className="text-gray-500 text-sm line-clamp-1">숫자10 만들고 글자 모으기</p>
                         </div>
                         <ChevronRight className="text-primary size-6 flex-shrink-0" />
                     </Link>

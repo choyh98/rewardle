@@ -434,14 +434,14 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
                     {/* Timer */}
                     <div className="bg-white flex items-center gap-2 rounded-full px-2.5 h-[44px] shadow-sm">
                         <div className="bg-[#FF5656] rounded-full size-[32px] flex items-center justify-center">
-                            <span className="text-white text-lg">⏱</span>
+                            <span className="text-white text-[20px]">⏱</span>
                         </div>
                         <p className="text-[18px] text-black font-semibold pr-2">{timeLeft}</p>
                     </div>
                     {/* Score */}
-                    <div className="bg-white flex items-center gap-2 rounded-full px-2.5 h-[44px] shadow-sm">
-                        <img src={appleImage} alt="" loading="lazy" className="w-[32px] h-[32px] object-contain" />
-                        <p className="text-[18px] text-black font-semibold pr-1.5">{score}</p>
+                    <div className="bg-white flex items-center gap-0.5 rounded-full pl-1 pr-2.5 h-[44px] shadow-sm">
+                        <img src={appleImage} alt="" loading="lazy" className="w-[60px] h-[60px] object-contain -ml-2" />
+                        <p className="text-[18px] text-black font-semibold">{score}</p>
                     </div>
                 </div>
                 {/* Help button */}
