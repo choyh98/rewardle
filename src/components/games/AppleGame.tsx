@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
 import type { Brand } from '../../data/brands';
 import appleImage from '../../assets/apple.png';
@@ -415,7 +414,7 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
             addPoints(5, `${brand.name} 사과 추가 미션 완료`); // 사과 추가미션 5P
             setQuizResult({ correct });
             setShowQuiz(false);
-            setShowQuizResult(true); // 성공 시에만 팝업
+            // 성공 시 자동으로 미션 완료 처리됨
         } else {
             // 실패 시 인라인 메시지만 표시 (워들 게임처럼)
             setQuizResult({ correct: false });
