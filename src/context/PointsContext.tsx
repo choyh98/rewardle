@@ -1,79 +1,51 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { useAuth } from './AuthContext';
+import { pointsService, gameService } from '../lib/services';
+import type { PointHistory, GameType, GameHistory } from '../types';
 
 interface PointsContextType {
     points: number;
     addPoints: (amount: number, reason: string) => void;
-    history: Array<{ date: string; reason: string; amount: number }>;
+    history: PointHistory[];
     totalGamesPlayed: number;
-    recordGameCompletion: (gameType: 'wordle' | 'apple', brandId?: string) => void;
+    recordGameCompletion: (gameType: GameType, brandId?: string) => void;
     canPlayGame: () => boolean;
     dailyGamesRemaining: number;
-    gameHistory: Array<{ date: string; gameType: 'wordle' | 'apple' }>;
+    gameHistory: GameHistory[];
     isLoading: boolean;
-    userId: string | null;
 }
 
 const PointsContext = createContext<PointsContextType | undefined>(undefined);
 
+const DAILY_GAME_LIMIT = 10;
+
 export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [userId, setUserId] = useState<string | null>(null);
+    const { user } = useAuth();
     const [isLoading, setIsLoading] = useState(true);
     const [points, setPoints] = useState<number>(0);
-    const [history, setHistory] = useState<Array<{ date: string; reason: string; amount: number }>>([]);
-    const [dailyGames, setDailyGames] = useState<{ date: string; count: number }>({ date: new Date().toDateString(), count: 0 });
-    const [gameHistory, setGameHistory] = useState<Array<{ date: string; gameType: 'wordle' | 'apple' }>>([]);
+    const [history, setHistory] = useState<PointHistory[]>([]);
+    const [dailyGames, setDailyGames] = useState<{ date: string; count: number }>({ 
+        date: new Date().toDateString(), 
+        count: 0 
+    });
+    const [gameHistory, setGameHistory] = useState<GameHistory[]>([]);
 
-    const DAILY_GAME_LIMIT = 10;
     const totalGamesPlayed = dailyGames.count;
-
-    // 사용자 ID 가져오기 (Supabase Auth 또는 게스트)
-    useEffect(() => {
-        const initUser = async () => {
-            try {
-                const { data: { session } } = await supabase.auth.getSession();
-                if (session?.user) {
-                    setUserId(session.user.id);
-                } else {
-                    // 게스트 사용자
-                    let guestId = localStorage.getItem('rewardle_guest_id');
-                    if (!guestId) {
-                        guestId = `guest_${Date.now()}`;
-                        localStorage.setItem('rewardle_guest_id', guestId);
-                    }
-                    setUserId(guestId);
-                }
-            } catch (error) {
-                console.error('Failed to initialize user:', error);
-                // 폴백: 게스트 사용자
-                let guestId = localStorage.getItem('rewardle_guest_id');
-                if (!guestId) {
-                    guestId = `guest_${Date.now()}`;
-                    localStorage.setItem('rewardle_guest_id', guestId);
-                }
-                setUserId(guestId);
-            }
-        };
-        initUser();
-    }, []);
 
     // 사용자 데이터 로드
     useEffect(() => {
-        if (!userId) return;
+        if (!user) return;
 
         const loadUserData = async () => {
             setIsLoading(true);
             try {
-                // 게스트 사용자는 localStorage 사용
-                if (userId.startsWith('guest_')) {
+                if (user.isGuest) {
                     await loadFromLocalStorage();
                 } else {
-                    // 로그인 사용자는 Supabase 사용
                     await loadFromSupabase();
                 }
             } catch (error) {
                 console.error('Failed to load user data:', error);
-                // 에러 시 localStorage 폴백
                 await loadFromLocalStorage();
             } finally {
                 setIsLoading(false);
@@ -81,7 +53,7 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         };
 
         loadUserData();
-    }, [userId]);
+    }, [user]);
 
     // localStorage에서 데이터 로드
     const loadFromLocalStorage = async () => {
@@ -103,7 +75,7 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             if (savedGameHistory) {
                 const data = JSON.parse(savedGameHistory);
                 const today = new Date().toDateString();
-                setGameHistory(data.filter((item: { date: string }) => item.date === today));
+                setGameHistory(data.filter((item: GameHistory) => item.date === today));
             }
         } catch (error) {
             console.error('Failed to load from localStorage:', error);
@@ -112,82 +84,38 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     // Supabase에서 데이터 로드
     const loadFromSupabase = async () => {
-        if (!userId || userId.startsWith('guest_')) return;
+        if (!user || user.isGuest) return;
 
         try {
-            // 1. 사용자 포인트 가져오기
-            const { data: userPoints, error: pointsError } = await supabase
-                .from('user_points')
-                .select('points')
-                .eq('user_id', userId)
-                .single();
+            // 포인트 가져오기
+            const userPoints = await pointsService.getUserPoints(user.id);
+            setPoints(userPoints);
 
-            if (pointsError) {
-                if (pointsError.code === 'PGRST116') {
-                    // 레코드가 없으면 생성
-                    await supabase.from('user_points').insert({ user_id: userId, points: 0 });
-                    setPoints(0);
-                } else {
-                    throw pointsError;
-                }
-            } else {
-                setPoints(userPoints?.points || 0);
-            }
+            // 포인트 내역 가져오기
+            const historyData = await pointsService.getPointHistory(user.id);
+            setHistory(historyData);
 
-            // 2. 포인트 내역 가져오기 (최근 100개)
-            const { data: historyData, error: historyError } = await supabase
-                .from('point_history')
-                .select('*')
-                .eq('user_id', userId)
-                .order('created_at', { ascending: false })
-                .limit(100);
-
-            if (historyError) throw historyError;
-            
-            setHistory(
-                (historyData || []).map(item => ({
-                    date: item.created_at,
-                    reason: item.reason,
-                    amount: item.amount
-                }))
-            );
-
-            // 3. 오늘의 게임 플레이 내역 가져오기
-            const today = new Date().toISOString().split('T')[0];
-            const { data: gamePlays, error: gamesError } = await supabase
-                .from('game_plays')
-                .select('*')
-                .eq('user_id', userId)
-                .gte('created_at', today)
-                .order('created_at', { ascending: false });
-
-            if (gamesError) throw gamesError;
-
+            // 게임 플레이 내역 가져오기
+            const gameData = await gameService.getTodayGamePlays(user.id);
             const todayString = new Date().toDateString();
-            setDailyGames({ date: todayString, count: gamePlays?.length || 0 });
-            setGameHistory(
-                (gamePlays || []).map(item => ({
-                    date: todayString,
-                    gameType: item.game_type as 'wordle' | 'apple'
-                }))
-            );
-
+            setDailyGames({ date: todayString, count: gameData.count });
+            setGameHistory(gameData.history);
         } catch (error) {
             console.error('Failed to load from Supabase:', error);
             throw error;
         }
     };
 
-    // 포인트 추가 (Supabase 또는 localStorage)
+    // 포인트 추가
     const addPoints = async (amount: number, reason: string) => {
-        if (amount <= 0) return;
+        if (amount <= 0 || !user) return;
 
         const newPoints = points + amount;
         setPoints(newPoints);
         const newHistoryItem = { date: new Date().toISOString(), reason, amount };
         setHistory(prev => [newHistoryItem, ...prev]);
 
-        if (userId?.startsWith('guest_')) {
+        if (user.isGuest) {
             // 게스트: localStorage에 저장
             try {
                 localStorage.setItem('rewardle_points', newPoints.toString());
@@ -195,23 +123,10 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             } catch (error) {
                 console.error('Failed to save to localStorage:', error);
             }
-        } else if (userId) {
+        } else {
             // 로그인 사용자: Supabase에 저장
             try {
-                // 1. 포인트 내역 추가
-                await supabase.from('point_history').insert({
-                    user_id: userId,
-                    amount,
-                    reason
-                });
-
-                // 2. 총 포인트 업데이트 (최신 값 사용)
-                await supabase
-                    .from('user_points')
-                    .upsert({ 
-                        user_id: userId, 
-                        points: newPoints 
-                    });
+                await pointsService.addPoints(user.id, amount, reason, points);
             } catch (error) {
                 console.error('Failed to save points to Supabase:', error);
             }
@@ -219,7 +134,9 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
 
     // 게임 완료 기록
-    const recordGameCompletion = async (gameType: 'wordle' | 'apple', brandId?: string) => {
+    const recordGameCompletion = async (gameType: GameType, brandId?: string) => {
+        if (!user) return;
+
         const today = new Date().toDateString();
         
         // 로컬 상태 업데이트
@@ -231,7 +148,7 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             setDailyGames(prev => ({ ...prev, count: prev.count + 1 }));
         }
 
-        if (userId?.startsWith('guest_')) {
+        if (user.isGuest) {
             // 게스트: localStorage에 저장
             try {
                 const newDailyGames = dailyGames.date !== today 
@@ -243,15 +160,10 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             } catch (error) {
                 console.error('Failed to save game completion to localStorage:', error);
             }
-        } else if (userId) {
+        } else {
             // 로그인 사용자: Supabase에 저장
             try {
-                await supabase.from('game_plays').insert({
-                    user_id: userId,
-                    game_type: gameType,
-                    brand_id: brandId || null,
-                    score: 0
-                });
+                await gameService.recordGameCompletion(user.id, gameType, brandId);
             } catch (error) {
                 console.error('Failed to save game completion to Supabase:', error);
             }
@@ -278,8 +190,7 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             canPlayGame,
             dailyGamesRemaining,
             gameHistory,
-            isLoading,
-            userId
+            isLoading
         }}>
             {children}
         </PointsContext.Provider>

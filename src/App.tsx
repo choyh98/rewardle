@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
+import { AuthProvider } from './context/AuthContext';
 import { PointsProvider } from './context/PointsContext';
 
 // 즉시 로드되어야 하는 페이지 (초기 화면)
@@ -22,24 +23,26 @@ const LoadingFallback = () => (
 
 function App() {
   return (
-    <PointsProvider>
-      <Router>
-        <div className="max-w-[500px] mx-auto min-h-screen bg-white shadow-xl relative overflow-hidden">
-          <Suspense fallback={<LoadingFallback />}>
-          <Routes>
-            <Route path="/" element={<LoginPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/home" element={<LandingPage />} />
-            <Route path="/game/:type" element={<GamePage />} />
-            <Route path="/attendance" element={<AttendancePage />} />
-            <Route path="/points-history" element={<PointsHistoryPage />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-          </Suspense>
-        </div>
-      </Router>
-    </PointsProvider>
+    <AuthProvider>
+      <PointsProvider>
+        <Router>
+          <div className="max-w-[500px] mx-auto min-h-screen bg-white shadow-xl relative overflow-hidden">
+            <Suspense fallback={<LoadingFallback />}>
+            <Routes>
+              <Route path="/" element={<LoginPage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/home" element={<LandingPage />} />
+              <Route path="/game/:type" element={<GamePage />} />
+              <Route path="/attendance" element={<AttendancePage />} />
+              <Route path="/points-history" element={<PointsHistoryPage />} />
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+            </Suspense>
+          </div>
+        </Router>
+      </PointsProvider>
+    </AuthProvider>
   );
 }
 

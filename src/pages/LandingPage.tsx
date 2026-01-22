@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ChevronRight, Award, LogOut } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import { usePoints } from '../context/PointsContext';
 import { getDefaultBrand, type Brand } from '../data/brands';
 import { supabase } from '../lib/supabase';
@@ -13,10 +14,10 @@ import backgroundImage from '../assets/background.png';
 
 const LandingPage: React.FC = () => {
     const navigate = useNavigate();
-    const { points, dailyGamesRemaining, gameHistory, userId } = usePoints();
+    const { user } = useAuth();
+    const { points, dailyGamesRemaining, gameHistory } = usePoints();
     const [defaultBrand, setDefaultBrand] = useState<Brand | null>(null);
     const [showGameHistoryModal, setShowGameHistoryModal] = useState(false);
-    const [isGuest, setIsGuest] = useState(false);
 
     useEffect(() => {
         const loadBrand = async () => {
@@ -24,10 +25,7 @@ const LandingPage: React.FC = () => {
             setDefaultBrand(brand);
         };
         loadBrand();
-
-        // 게스트 사용자 확인
-        setIsGuest(userId?.startsWith('guest_') || false);
-    }, [userId]);
+    }, []);
 
     const handleLogout = async () => {
         if (confirm('로그아웃 하시겠습니까?')) {
@@ -77,7 +75,7 @@ const LandingPage: React.FC = () => {
 
                 {/* Floating Point Header */}
                 <div className="absolute top-6 right-6 z-20 flex gap-2">
-                    {!isGuest && (
+                    {user && !user.isGuest && (
                         <button
                             onClick={handleLogout}
                             className="bg-white/95 backdrop-blur-sm rounded-full p-2 shadow-lg active:scale-95 transition-transform border border-white/20"
@@ -155,7 +153,7 @@ const LandingPage: React.FC = () => {
                         자영업자이신가요? 퀴즈 등록하러 가기
                     </Link>
                     
-                    {isGuest && (
+                    {user && user.isGuest && (
                         <Link to="/login" className="block w-full bg-primary/10 rounded-2xl p-5 text-center text-primary font-semibold hover:bg-primary/20 transition-colors">
                             로그인하고 데이터 백업하기
                         </Link>

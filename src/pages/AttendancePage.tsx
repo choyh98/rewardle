@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, CheckCircle2, Gift, X } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import { usePoints } from '../context/PointsContext';
 import { supabase } from '../lib/supabase';
 
 const AttendancePage: React.FC = () => {
     const navigate = useNavigate();
-    const { addPoints, totalGamesPlayed, userId } = usePoints();
+    const { user } = useAuth();
+    const { addPoints, totalGamesPlayed } = usePoints();
     
     // 오늘 출석 체크 여부 확인
     const [checked, setChecked] = useState<boolean>(false);
@@ -20,12 +22,12 @@ const AttendancePage: React.FC = () => {
 
     // 출석 데이터 로드
     useEffect(() => {
-        if (!userId) return;
+        if (!user) return;
 
         const loadAttendanceData = async () => {
             setIsLoading(true);
             try {
-                if (userId.startsWith('guest_')) {
+                if (user.isGuest) {
                     // 게스트: localStorage에서 로드
                     const today = new Date().toDateString();
                     const lastCheck = localStorage.getItem('rewardle_last_check');
@@ -40,7 +42,7 @@ const AttendancePage: React.FC = () => {
                     const { data, error } = await supabase
                         .from('attendance')
                         .select('*')
-                        .eq('user_id', userId)
+                        .eq('user_id', user.id)
                         .eq('check_date', today)
                         .maybeSingle();
 
@@ -57,7 +59,7 @@ const AttendancePage: React.FC = () => {
                         const { data: lastAttendance } = await supabase
                             .from('attendance')
                             .select('streak, check_date')
-                            .eq('user_id', userId)
+                            .eq('user_id', user.id)
                             .order('check_date', { ascending: false })
                             .limit(1)
                             .maybeSingle();
@@ -76,10 +78,10 @@ const AttendancePage: React.FC = () => {
         };
 
         loadAttendanceData();
-    }, [userId]);
+    }, [user]);
 
     const handleCheckIn = async () => {
-        if (checked || !isMissionComplete || !userId) return;
+        if (checked || !isMissionComplete || !user) return;
         
         const today = new Date().toDateString();
         const todayISO = new Date().toISOString().split('T')[0];
@@ -88,7 +90,7 @@ const AttendancePage: React.FC = () => {
         
         let newStreak = 1;
         
-        if (userId.startsWith('guest_')) {
+        if (user.isGuest) {
             // 게스트: localStorage 기반 연속 일수 계산
             if (lastCheckDate === yesterday) {
                 newStreak = attendanceStreak + 1;
@@ -106,7 +108,7 @@ const AttendancePage: React.FC = () => {
         
         setChecked(true);
         setAttendanceStreak(newStreak);
-        setLastCheckDate(userId.startsWith('guest_') ? today : todayISO);
+        setLastCheckDate(user.isGuest ? today : todayISO);
         
         // 기본 출석 포인트
         let totalPoints = 2;
@@ -131,7 +133,7 @@ const AttendancePage: React.FC = () => {
         await addPoints(totalPoints, `일일 출석 체크${bonusMessage}`);
         
         // 출석 기록 저장
-        if (userId.startsWith('guest_')) {
+        if (user.isGuest) {
             // 게스트: localStorage에 저장
             localStorage.setItem('rewardle_attendance_streak', newStreak.toString());
             localStorage.setItem('rewardle_last_check', today);
@@ -142,13 +144,13 @@ const AttendancePage: React.FC = () => {
                 const { data: existingRecord } = await supabase
                     .from('attendance')
                     .select('id')
-                    .eq('user_id', userId)
+                    .eq('user_id', user.id)
                     .eq('check_date', todayISO)
                     .maybeSingle();
 
                 if (!existingRecord) {
                     await supabase.from('attendance').insert({
-                        user_id: userId,
+                        user_id: user.id,
                         check_date: todayISO,
                         streak: newStreak
                     });
