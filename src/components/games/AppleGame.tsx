@@ -80,7 +80,6 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
     const [startCell, setStartCell] = useState<Cell | null>(null);
     const [isSelecting, setIsSelecting] = useState(false);
     const [isFinished, setIsFinished] = useState(false);
-    const [isStunned, setIsStunned] = useState(false);
     const [showWordComplete, setShowWordComplete] = useState(false);
     const [showQuiz, setShowQuiz] = useState(false);
     const [quizAnswer, setQuizAnswer] = useState('');
@@ -247,14 +246,14 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
     };
 
     const handleStart = (cell: Cell) => {
-        if (isFinished || cell.isRemoved || isStunned) return;
+        if (isFinished || cell.isRemoved) return;
         setIsSelecting(true);
         setStartCell(cell);
         setSelection([cell]);
     };
 
     const handleEnter = (cell: Cell) => {
-        if (!isSelecting || isFinished || isStunned || !startCell) return;
+        if (!isSelecting || isFinished || !startCell) return;
         if (cell.isRemoved) return;
 
         // 같은 셀이면 시작 셀만 선택
@@ -551,14 +550,6 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
                     ))}
                 </div>
             </div>
-
-            {isStunned && (
-                <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-50">
-                    <div className="bg-black/70 px-8 py-4 rounded-2xl">
-                        <p className="font-black text-white text-3xl">틀렸습니다!</p>
-                    </div>
-                </div>
-            )}
 
             {/* Flying Syllables Animation */}
             {flyingSyllables.map((flying) => {
