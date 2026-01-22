@@ -46,11 +46,7 @@ const AdminDashboard: React.FC = () => {
             return;
         }
         if (!newBrand.name || !newBrand.question || !newBrand.answer || !newBrand.placeUrl) {
-            alert('모든 항목을 입력해주세요.');
-            return;
-        }
-        if (!newBrand.hintImage) {
-            alert('워들 게임 힌트 이미지를 업로드해주세요.');
+            alert('모든 필수 항목을 입력해주세요.\n(사진은 선택사항입니다)');
             return;
         }
 
@@ -66,7 +62,7 @@ const AdminDashboard: React.FC = () => {
                         name: newBrand.name,
                         wordle_answer: wordleAnswerArray,
                         apple_game_word: newBrand.appleGameWord,
-                        hint_image: newBrand.hintImage,
+                        hint_image: newBrand.hintImage || null, // 사진 선택사항으로
                         place_quiz_question: newBrand.question,
                         place_quiz_answer: newBrand.answer,
                         place_url: newBrand.placeUrl,
@@ -266,7 +262,7 @@ const AdminDashboard: React.FC = () => {
 
                         <div>
                             <label className="block text-sm font-black text-gray-700 mb-2 flex items-center gap-2">
-                                <Image size={16} className="text-primary" /> 워들 게임 힌트 이미지
+                                <Image size={16} className="text-gray-400" /> 워들 게임 힌트 이미지 <span className="text-gray-400 font-normal text-xs">(선택사항)</span>
                             </label>
                             <input
                                 type="file"
@@ -285,7 +281,7 @@ const AdminDashboard: React.FC = () => {
                                 }}
                             />
                             <p className="text-xs text-gray-400 mt-2">
-                                워들 게임에서 사용할 힌트 이미지를 업로드하세요 (JPG, PNG)
+                                워들 힌트는 <span className="text-primary font-bold">정답 초성</span>으로 표시됩니다 • 사진은 선택사항입니다
                             </p>
                             {newBrand.hintImage && (
                                 <div className="mt-3 flex items-center gap-3 bg-gray-50 rounded-xl p-3">
@@ -296,7 +292,7 @@ const AdminDashboard: React.FC = () => {
                                     />
                                     <div className="flex-1">
                                         <p className="text-sm font-bold text-gray-700">이미지 업로드 완료</p>
-                                        <p className="text-xs text-gray-400">워들 게임에서 힌트로 표시됩니다</p>
+                                        <p className="text-xs text-gray-400">추가로 이미지도 표시됩니다 (선택)</p>
                                     </div>
                                     <button
                                         onClick={() => setNewBrand({ ...newBrand, hintImage: '' })}

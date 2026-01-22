@@ -1,9 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ExternalLink } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import type { Brand } from '../../data/brands';
 import appleImage from '../../assets/apple.png';
 import { usePoints } from '../../context/PointsContext';
+import { AppleHelpModal } from './apple/AppleHelpModal';
+import { AppleSuccessModal } from './apple/AppleSuccessModal';
+import { AppleMissionModal } from './apple/AppleMissionModal';
+import { AppleFailModal } from './apple/AppleFailModal';
 
 const MaterialSymbolsHelpRounded = () => (
     <svg className="size-full" viewBox="0 0 48 48" fill="none">
@@ -125,18 +129,18 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
             }
         });
 
-        // 숫자 배치 - 난이도 조정 (균형 잡힌 분포)
+        // 숫자 배치 - 난이도 조정 (합이 10이 나올 확률 증가)
         const numbers: number[] = [];
         const numberPairs = [
-            { num: 5, count: 11 },  // 5+5=10
-            { num: 4, count: 11 },  // 4+6=10
-            { num: 6, count: 11 },  // 6+4=10
-            { num: 3, count: 11 },  // 3+7=10
-            { num: 7, count: 11 },  // 7+3=10
-            { num: 2, count: 10 },  // 2+8=10
-            { num: 8, count: 10 },  // 8+2=10
-            { num: 1, count: 10 },  // 1+9=10
-            { num: 9, count: 10 }   // 9+1=10
+            { num: 5, count: 18 },  // 5+5=10 (증가!)
+            { num: 4, count: 14 },  // 4+6=10 (증가!)
+            { num: 6, count: 14 },  // 6+4=10 (증가!)
+            { num: 3, count: 12 },  // 3+7=10 (증가!)
+            { num: 7, count: 12 },  // 7+3=10 (증가!)
+            { num: 2, count: 8 },   // 2+8=10
+            { num: 8, count: 8 },   // 8+2=10
+            { num: 1, count: 4 },   // 1+9=10 (감소)
+            { num: 9, count: 4 }    // 9+1=10 (감소)
         ];
 
         numberPairs.forEach(({ num, count }) => {
@@ -566,320 +570,49 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
                 );
             })}
 
-            {/* Word Complete Popup - 워들 스타일로 통일 */}
+            {/* Word Complete Popup */}
             {showWordComplete && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6">
-                    <div className="bg-white rounded-[16px] p-[32px] max-w-[320px] text-center">
-                        <div className="mb-[20px]">
-                            <div className="text-[48px] mb-[12px]">🎉</div>
-                            <p className="font-bold text-[24px] text-[#28c52d] mb-[8px]">정답입니다!</p>
-                            <p className="font-semibold text-[20px] text-[#121212]">5포인트가 적립되었습니다.</p>
-                        </div>
-
-                        <div className="flex flex-col gap-[12px]">
-                            <button
-                                onClick={() => {
-                                    setShowWordComplete(false);
-                                    setShowQuiz(true);
-                                }}
-                                className="bg-[#ff6b6b] text-white font-semibold text-[16px] py-[12px] px-[24px] rounded-[8px] hover:bg-[#ff5252] transition-colors touch-manipulation"
-                            >
-                                추가미션하고 5P 더 받기
-                            </button>
-                            <button
-                                onClick={() => {
-                                    onDeductPlay(); // 성공 후 홈으로 가기 시 차감
-                                    onBack();
-                                }}
-                                className="text-[#737373] font-medium text-[14px] py-[8px] hover:text-[#121212] transition-colors touch-manipulation"
-                            >
-                                홈으로 가기
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <AppleSuccessModal
+                    onStartMission={() => {
+                        setShowWordComplete(false);
+                        setShowQuiz(true);
+                    }}
+                    onGoHome={() => {
+                        onDeductPlay();
+                        onBack();
+                    }}
+                />
             )}
 
             {/* Quiz Popup */}
             {showQuiz && (
-                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-6">
-                    <div className="bg-white rounded-[24px] p-8 max-w-[400px] w-full relative">
-                        <div className="flex flex-col gap-6">
-                            <div className="flex items-center gap-3">
-                                <div className="text-[32px]">🎯</div>
-                                <h2 className="font-black text-[24px] text-[#ff6b6b]">
-                                    추가 미션!
-                                </h2>
-                            </div>
-
-                            <div className="bg-[#fff0db] rounded-[16px] p-4">
-                                <p className="text-[18px] text-[#333] leading-relaxed">
-                                    {brand.placeQuiz.question}
-                                </p>
-                            </div>
-
-                            <div className="flex flex-col gap-2">
-                                <label className="font-bold text-[16px] text-[#666]">
-                                    정답 입력
-                                </label>
-                                <input
-                                    type="text"
-                                    value={quizAnswer}
-                                    onChange={(e) => setQuizAnswer(e.target.value)}
-                                    className="border-2 border-[#e5e5e5] rounded-[12px] px-4 py-3 text-[18px] focus:border-[#ff6b6b] focus:outline-none"
-                                    placeholder="숫자만 입력"
-                                />
-                            </div>
-
-                            <div className="bg-[#f5f5f5] rounded-[12px] px-4 py-3">
-                                <p className="text-[14px] text-[#666] text-center">
-                                    정답시 +{brand.placeQuiz.bonusPoints} 보너스 포인트!
-                                </p>
-                            </div>
-
-                            <a
-                                href={brand.placeUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="bg-white border-2 border-[#ff6b6b] h-[50px] rounded-[12px] text-[#ff6b6b] font-black text-[20px] hover:bg-[#fff5f5] active:bg-[#ffe5e5] transition-colors flex items-center justify-center gap-2"
-                            >
-                                <ExternalLink size={18} /> 플레이스 보러가기
-                            </a>
-
-                            <button
-                                onClick={handleQuizSubmit}
-                                disabled={(quizSubmitted && quizResult?.correct) || !quizAnswer.trim()}
-                                className="bg-[#ff6b6b] h-[50px] rounded-[12px] text-white font-black text-[20px] hover:bg-[#ff5252] active:bg-[#e05555] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                제출하기
-                            </button>
-
-                            {/* 인라인 결과 메시지 (워들 게임처럼) */}
-                            {quizResult !== null && (
-                                <div className={`text-center font-bold ${quizResult.correct ? 'text-[#4caf50]' : 'text-[#ff6b6b]'}`}>
-                                    {quizResult.correct ? '정답입니다! 포인트가 적립되었습니다.' : '아쉬워요! 다시 도전해보세요.'}
-                                </div>
-                            )}
-                            {quizResult?.correct && (
-                                <button 
-                                    onClick={() => {
-                                        onDeductPlay(); // 추가미션 완료 후 홈으로 돌아가기 시 차감
-                                        onBack();
-                                    }} 
-                                    className="w-full mt-2 h-12 text-[#737373] font-medium hover:text-[#121212] transition-colors"
-                                >
-                                    홈으로 돌아가기
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Quiz Result Popup - 성공 시에만 표시 */}
-            {showQuizResult && quizResult?.correct && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6">
-                    <div className="bg-white rounded-[16px] p-[32px] max-w-[320px] text-center">
-                        <div className="mb-[20px]">
-                            <div className="text-[48px] mb-[12px]">🎉</div>
-                            <p className="font-bold text-[24px] text-[#28c52d] mb-[8px]">정답입니다!</p>
-                            <p className="font-semibold text-[20px] text-[#121212]">포인트가 적립되었습니다.</p>
-                        </div>
-
-                        <div className="flex flex-col gap-[12px]">
-                            <button
-                                onClick={onBack}
-                                className="bg-[#ff6b6b] text-white font-semibold text-[16px] py-[12px] px-[24px] rounded-[8px] hover:bg-[#ff5252] transition-colors touch-manipulation"
-                            >
-                                홈으로 가기
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <AppleMissionModal
+                    brand={brand}
+                    quizAnswer={quizAnswer}
+                    quizResult={quizResult}
+                    onAnswerChange={setQuizAnswer}
+                    onSubmit={handleQuizSubmit}
+                    onGoHome={() => {
+                        onDeductPlay();
+                        onBack();
+                    }}
+                />
             )}
 
             {/* Game Over */}
-            <AnimatePresence>
-                {isFinished && !showWordComplete && !showQuiz && !showQuizResult && (
-                    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-6">
-                        <div className="bg-white rounded-[16px] p-[32px] max-w-[320px] text-center">
-                            <div className="mb-[20px]">
-                                <div className="text-[48px] mb-[12px]">⏰</div>
-                                <p className="font-bold text-[24px] text-[#ff8800] mb-[8px]">시간 종료!</p>
-                                <p className="font-medium text-[16px] text-[#121212] mb-[12px]">최종 점수: {score}점</p>
-                                <p className="font-normal text-[14px] text-[#737373]">다시 도전해보세요!</p>
-                            </div>
-
-                            <div className="flex flex-col gap-[12px]">
-                                <button
-                                    onClick={() => {
-                                        onDeductPlay(); // 실패 시 다시 도전하기 클릭 시 차감
-                                        window.location.reload();
-                                    }}
-                                    className="bg-[#ff6b6b] text-white font-semibold text-[16px] py-[12px] px-[24px] rounded-[8px] hover:bg-[#ff5252] transition-colors"
-                                >
-                                    다시 도전하기
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        onDeductPlay(); // 실패 시 홈으로 가기 클릭 시 차감
-                                        onBack();
-                                    }}
-                                    className="text-[#737373] font-medium text-[14px] py-[8px] hover:text-[#121212] transition-colors touch-manipulation"
-                                >
-                                    홈으로 가기
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </AnimatePresence>
-        </div>
-    );
-};
-
-// Help Modal Component
-const HelpModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-    return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-6" onClick={onClose}>
-            <div className="bg-white rounded-[20px] p-6 max-w-[400px] w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-                <div className="flex items-start justify-between mb-6">
-                    <h2 className="font-black text-[24px] text-[#333]">게임 방법</h2>
-                    <button
-                        onClick={onClose}
-                        className="text-[#999] hover:text-[#333] text-[28px] leading-none transition-colors"
-                    >
-                        ✕
-                    </button>
-                </div>
-
-                <div className="flex flex-col gap-6">
-                    {/* Step 1 */}
-                    <div className="flex items-start gap-4">
-                        <div className="bg-[#e5e5e5] rounded-full size-[40px] flex items-center justify-center shrink-0">
-                            <span className="font-black text-[20px] text-[#666]">1</span>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                            <h3 className="font-black text-[20px] text-[#333]">
-                                사과에 적힌 숫자의 합이 '10'이 되면 완성!
-                            </h3>
-                            <p className="text-[16px] text-[#666] leading-relaxed">
-                                숫자의 합이 '10'이 되는 사과를 찾아보세요.
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="w-full h-px bg-[#e5e5e5]" />
-
-                    {/* Step 2 */}
-                    <div className="flex items-start gap-4">
-                        <div className="bg-[#e5e5e5] rounded-full size-[40px] flex items-center justify-center shrink-0">
-                            <span className="font-black text-[20px] text-[#666]">2</span>
-                        </div>
-                        <div className="flex flex-col gap-3 flex-1">
-                            <h3 className="font-black text-[20px] text-[#333]">
-                                드래그로 영역을 선택하세요!
-                            </h3>
-                            <p className="text-[16px] text-[#666] leading-relaxed">
-                                1줄로 쭉, 2x2 정사각형 등 다양한 모양으로 선택할 수 있어요.
-                            </p>
-
-                            {/* 드래그 예시 애니메이션 */}
-                            <div className="bg-gradient-to-br from-[#fff0db] to-[#ffe5e5] rounded-[12px] p-4 mt-2">
-                                <div className="flex flex-col gap-4">
-                                    {/* 1열 예시 */}
-                                    <div className="flex flex-col gap-2">
-                                        <span className="font-bold text-[14px] text-[#666]">
-                                            1열로 쭉 (3+3+4 = 10)
-                                        </span>
-                                        <div className="flex gap-2">
-                                            {[3, 3, 4].map((num, idx) => (
-                                                <motion.div
-                                                    key={idx}
-                                                    className="relative size-[50px] rounded-[8px] bg-white/80 flex items-center justify-center"
-                                                    animate={{
-                                                        scale: [1, 1.1, 1],
-                                                        backgroundColor: ["rgba(255, 255, 255, 0.8)", "rgba(255, 215, 0, 0.9)", "rgba(255, 255, 255, 0.8)"],
-                                                    }}
-                                                    transition={{
-                                                        duration: 2,
-                                                        delay: idx * 0.3,
-                                                        repeat: Infinity,
-                                                        repeatDelay: 2,
-                                                    }}
-                                                >
-                                                    <img src={appleImage} alt="" loading="lazy" className="absolute inset-0 w-full h-full object-contain opacity-20" />
-                                                    <span className="absolute font-black text-[24px] text-[#ff6b6b] drop-shadow-[0_2px_2px_rgba(0,0,0,0.5)]">
-                                                        {num}
-                                                    </span>
-                                                </motion.div>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* 2x2 예시 */}
-                                    <div className="flex flex-col gap-2">
-                                        <span className="font-bold text-[14px] text-[#666]">
-                                            2x2 정사각형 (2+3+2+3 = 10)
-                                        </span>
-                                        <div className="flex flex-col gap-2">
-                                            {[[2, 3], [2, 3]].map((row, rowIdx) => (
-                                                <div key={rowIdx} className="flex gap-2">
-                                                    {row.map((num, colIdx) => (
-                                                        <motion.div
-                                                            key={colIdx}
-                                                            className="relative size-[50px] rounded-[8px] bg-white/80 flex items-center justify-center"
-                                                            animate={{
-                                                                scale: [1, 1.1, 1],
-                                                                backgroundColor: ["rgba(255, 255, 255, 0.8)", "rgba(255, 215, 0, 0.9)", "rgba(255, 255, 255, 0.8)"],
-                                                            }}
-                                                            transition={{
-                                                                duration: 2,
-                                                                delay: 2 + (rowIdx * 2 + colIdx) * 0.2,
-                                                                repeat: Infinity,
-                                                                repeatDelay: 2,
-                                                            }}
-                                                        >
-                                                            <img src={appleImage} alt="" loading="lazy" className="absolute inset-0 w-full h-full object-contain opacity-20" />
-                                                            <span className="absolute font-black text-[24px] text-[#ff6b6b] drop-shadow-[0_2px_2px_rgba(0,0,0,0.5)]">
-                                                                {num}
-                                                            </span>
-                                                        </motion.div>
-                                                    ))}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="w-full h-px bg-[#e5e5e5]" />
-
-                    {/* Step 3 */}
-                    <div className="flex items-start gap-4">
-                        <div className="bg-[#e5e5e5] rounded-full size-[40px] flex items-center justify-center shrink-0">
-                            <span className="font-black text-[20px] text-[#666]">3</span>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                            <h3 className="font-black text-[20px] text-[#333]">
-                                주어진 시간은 120초!
-                            </h3>
-                            <p className="text-[16px] text-[#666] leading-relaxed">
-                                120초 동안 사과를 제거하여 가장 많은 점수를 얻어보세요.
-                            </p>
-                        </div>
-                    </div>
-
-                    <button
-                        onClick={onClose}
-                        className="bg-[#ff6b6b] h-[50px] rounded-[12px] text-white font-black text-[20px] hover:bg-[#ff5252] active:bg-[#e05555] transition-colors"
-                    >
-                        확인
-                    </button>
-                </div>
-            </div>
+            {isFinished && !showWordComplete && !showQuiz && (
+                <AppleFailModal
+                    score={score}
+                    onRetry={() => {
+                        onDeductPlay();
+                        window.location.reload();
+                    }}
+                    onGoHome={() => {
+                        onDeductPlay();
+                        onBack();
+                    }}
+                />
+            )}
         </div>
     );
 };
@@ -907,7 +640,7 @@ const AppleGame: React.FC<AppleGameProps> = ({ brand, onComplete, onBack, onDedu
                     onShowHelp={() => setShowHelp(true)}
                 />
             )}
-            {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
+            {showHelp && <AppleHelpModal onClose={() => setShowHelp(false)} />}
         </>
     );
 };

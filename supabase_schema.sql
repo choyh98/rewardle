@@ -17,7 +17,7 @@ CREATE TABLE brands (
     name TEXT NOT NULL,
     wordle_answer TEXT[] NOT NULL,
     apple_game_word TEXT NOT NULL,
-    hint_image TEXT NOT NULL,
+    hint_image TEXT,  -- NULL 허용 (선택사항)
     place_quiz_question TEXT NOT NULL,
     place_quiz_answer TEXT NOT NULL,
     place_url TEXT NOT NULL,

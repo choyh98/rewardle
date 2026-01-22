@@ -16,6 +16,7 @@ const AttendancePage: React.FC = () => {
     const [attendanceStreak, setAttendanceStreak] = useState<number>(0);
     const [lastCheckDate, setLastCheckDate] = useState<string>('');
     const [isLoading, setIsLoading] = useState(true);
+    const [monthlyAttendance, setMonthlyAttendance] = useState<string[]>([]); // 이번 달 출석한 날짜들
 
     const missionGoal = 3;
     const isMissionComplete = totalGamesPlayed >= missionGoal;
@@ -32,10 +33,25 @@ const AttendancePage: React.FC = () => {
                     const today = new Date().toDateString();
                     const lastCheck = localStorage.getItem('rewardle_last_check');
                     const savedStreak = localStorage.getItem('rewardle_attendance_streak');
+                    const savedMonthly = localStorage.getItem('rewardle_monthly_attendance');
                     
                     setChecked(lastCheck === today);
                     setAttendanceStreak(savedStreak ? parseInt(savedStreak) : 0);
                     setLastCheckDate(lastCheck || '');
+                    
+                    // 이번 달 출석 기록 로드
+                    if (savedMonthly) {
+                        const monthlyData = JSON.parse(savedMonthly);
+                        const currentMonth = new Date().getMonth();
+                        const currentYear = new Date().getFullYear();
+                        
+                        // 이번 달 데이터만 필터링
+                        const thisMonthAttendance = monthlyData.filter((dateStr: string) => {
+                            const date = new Date(dateStr);
+                            return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+                        });
+                        setMonthlyAttendance(thisMonthAttendance);
+                    }
                 } else {
                     // 로그인 사용자: Supabase에서 로드
                     const today = new Date().toISOString().split('T')[0];
@@ -68,6 +84,23 @@ const AttendancePage: React.FC = () => {
                             setAttendanceStreak(lastAttendance.streak);
                             setLastCheckDate(lastAttendance.check_date);
                         }
+                    }
+
+                    // 이번 달 전체 출석 기록 가져오기
+                    const currentYear = new Date().getFullYear();
+                    const currentMonth = new Date().getMonth() + 1;
+                    const firstDayOfMonth = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`;
+                    const lastDayOfMonth = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${new Date(currentYear, currentMonth, 0).getDate()}`;
+
+                    const { data: monthlyData } = await supabase
+                        .from('attendance')
+                        .select('check_date')
+                        .eq('user_id', user.id)
+                        .gte('check_date', firstDayOfMonth)
+                        .lte('check_date', lastDayOfMonth);
+
+                    if (monthlyData) {
+                        setMonthlyAttendance(monthlyData.map(item => item.check_date));
                     }
                 }
             } catch (error) {
@@ -137,6 +170,11 @@ const AttendancePage: React.FC = () => {
             // 게스트: localStorage에 저장
             localStorage.setItem('rewardle_attendance_streak', newStreak.toString());
             localStorage.setItem('rewardle_last_check', today);
+            
+            // 이번 달 출석 기록 업데이트
+            const updatedMonthly = [...monthlyAttendance, today];
+            setMonthlyAttendance(updatedMonthly);
+            localStorage.setItem('rewardle_monthly_attendance', JSON.stringify(updatedMonthly));
         } else {
             // 로그인 사용자: Supabase에 저장
             try {
@@ -154,6 +192,9 @@ const AttendancePage: React.FC = () => {
                         check_date: todayISO,
                         streak: newStreak
                     });
+                    
+                    // 이번 달 출석 기록 업데이트
+                    setMonthlyAttendance([...monthlyAttendance, todayISO]);
                 }
             } catch (error) {
                 console.error('Failed to save attendance to Supabase:', error);
@@ -268,11 +309,18 @@ const AttendancePage: React.FC = () => {
                             const isToday = day === today;
                             const isTodayChecked = isToday && checked;
                             
+                            // 해당 날짜가 출석 기록에 있는지 확인
+                            const dateStr = user?.isGuest 
+                                ? new Date(currentYear, currentMonth - 1, day).toDateString()
+                                : `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                            
+                            const isAttended = monthlyAttendance.includes(dateStr);
+                            
                             return (
                                 <div
                                     key={day}
                                     className={`aspect-square rounded-xl flex items-center justify-center relative overflow-hidden border-2 transition-all ${
-                                        isTodayChecked
+                                        isAttended || isTodayChecked
                                             ? 'bg-primary/10 border-primary shadow-inner'
                                             : isPast
                                             ? 'bg-gray-100 border-gray-200'
@@ -280,14 +328,14 @@ const AttendancePage: React.FC = () => {
                                     }`}
                                 >
                                     <span className={`text-sm font-black ${
-                                        isTodayChecked ? 'text-primary' : isPast ? 'text-gray-400' : 'text-gray-300'
+                                        isAttended || isTodayChecked ? 'text-primary' : isPast ? 'text-gray-400' : 'text-gray-300'
                                     }`}>
                                         {day}
                                     </span>
-                                    {isTodayChecked && (
+                                    {(isAttended || isTodayChecked) && (
                                         <CheckCircle2 className="absolute -bottom-1 -right-1 text-primary size-5 opacity-50" />
                                     )}
-                                    {isPast && (
+                                    {isPast && !isAttended && (
                                         <X className="absolute -bottom-1 -right-1 text-gray-400 size-5 opacity-50" strokeWidth={3} />
                                     )}
                                 </div>
