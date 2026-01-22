@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
+import { migrateLocalStorageToSupabase, clearLocalStorageData } from '../lib/dataMigration';
 import logoImage from '../assets/logo.png';
 
 const LoginPage: React.FC = () => {
@@ -14,6 +15,19 @@ const LoginPage: React.FC = () => {
         const checkUser = async () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (session) {
+                // 로그인 직후인지 확인 (localStorage에 게스트 데이터가 있는지)
+                const hasLocalData = localStorage.getItem('rewardle_points') || 
+                                     localStorage.getItem('rewardle_guest_id');
+                
+                if (hasLocalData) {
+                    console.log('🔄 Migrating guest data to Supabase...');
+                    const migrated = await migrateLocalStorageToSupabase(session.user.id);
+                    if (migrated) {
+                        clearLocalStorageData();
+                        console.log('✅ Guest data migration completed');
+                    }
+                }
+                
                 navigate('/home');
             } else {
                 setChecking(false);

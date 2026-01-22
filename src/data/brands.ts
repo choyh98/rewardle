@@ -155,7 +155,9 @@ export const getDefaultBrand = async (): Promise<Brand | null> => {
 
 export const getBrandById = async (id: string): Promise<Brand | null> => {
     const brands = await fetchBrands();
-    return brands.find(b => b.id === id) || (brands.length > 0 ? brands[0] : null);
+    // UUID 또는 문자열 ID 모두 지원
+    const brand = brands.find(b => b.id === id);
+    return brand || (brands.length > 0 ? brands[0] : null);
 };
 
 // 캐시 무효화 (새 브랜드 추가 후 호출)

@@ -1,52 +1,112 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, CheckCircle2, Gift, X } from 'lucide-react';
 import { usePoints } from '../context/PointsContext';
+import { supabase } from '../lib/supabase';
 
 const AttendancePage: React.FC = () => {
     const navigate = useNavigate();
-    const { addPoints, totalGamesPlayed } = usePoints();
+    const { addPoints, totalGamesPlayed, userId } = usePoints();
     
     // 오늘 출석 체크 여부 확인
-    const [checked, setChecked] = useState<boolean>(() => {
-        const today = new Date().toDateString();
-        const lastCheck = localStorage.getItem('rewardle_last_check');
-        return lastCheck === today;
-    });
-    
-    const [attendanceStreak, setAttendanceStreak] = useState<number>(() => {
-        const saved = localStorage.getItem('rewardle_attendance_streak');
-        return saved ? parseInt(saved) : 0;
-    });
-    
-    const [lastCheckDate, setLastCheckDate] = useState<string>(() => {
-        return localStorage.getItem('rewardle_last_check') || '';
-    });
+    const [checked, setChecked] = useState<boolean>(false);
+    const [attendanceStreak, setAttendanceStreak] = useState<number>(0);
+    const [lastCheckDate, setLastCheckDate] = useState<string>('');
+    const [isLoading, setIsLoading] = useState(true);
 
     const missionGoal = 3;
     const isMissionComplete = totalGamesPlayed >= missionGoal;
 
-    const handleCheckIn = () => {
-        if (checked || !isMissionComplete) return;
+    // 출석 데이터 로드
+    useEffect(() => {
+        if (!userId) return;
+
+        const loadAttendanceData = async () => {
+            setIsLoading(true);
+            try {
+                if (userId.startsWith('guest_')) {
+                    // 게스트: localStorage에서 로드
+                    const today = new Date().toDateString();
+                    const lastCheck = localStorage.getItem('rewardle_last_check');
+                    const savedStreak = localStorage.getItem('rewardle_attendance_streak');
+                    
+                    setChecked(lastCheck === today);
+                    setAttendanceStreak(savedStreak ? parseInt(savedStreak) : 0);
+                    setLastCheckDate(lastCheck || '');
+                } else {
+                    // 로그인 사용자: Supabase에서 로드
+                    const today = new Date().toISOString().split('T')[0];
+                    const { data, error } = await supabase
+                        .from('attendance')
+                        .select('*')
+                        .eq('user_id', userId)
+                        .eq('check_date', today)
+                        .maybeSingle();
+
+                    if (error && error.code !== 'PGRST116') {
+                        console.error('Failed to load attendance:', error);
+                    }
+
+                    if (data) {
+                        setChecked(true);
+                        setAttendanceStreak(data.streak);
+                        setLastCheckDate(data.check_date);
+                    } else {
+                        // 최근 출석 기록에서 연속 일수 가져오기
+                        const { data: lastAttendance } = await supabase
+                            .from('attendance')
+                            .select('streak, check_date')
+                            .eq('user_id', userId)
+                            .order('check_date', { ascending: false })
+                            .limit(1)
+                            .maybeSingle();
+
+                        if (lastAttendance) {
+                            setAttendanceStreak(lastAttendance.streak);
+                            setLastCheckDate(lastAttendance.check_date);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load attendance data:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        loadAttendanceData();
+    }, [userId]);
+
+    const handleCheckIn = async () => {
+        if (checked || !isMissionComplete || !userId) return;
         
         const today = new Date().toDateString();
+        const todayISO = new Date().toISOString().split('T')[0];
         const yesterday = new Date(Date.now() - 86400000).toDateString();
+        const yesterdayISO = new Date(Date.now() - 86400000).toISOString().split('T')[0];
         
         let newStreak = 1;
-        if (lastCheckDate === yesterday) {
-            // 연속 출석
-            newStreak = attendanceStreak + 1;
-        } else if (lastCheckDate !== today) {
-            // 새로운 출석 시작
-            newStreak = 1;
+        
+        if (userId.startsWith('guest_')) {
+            // 게스트: localStorage 기반 연속 일수 계산
+            if (lastCheckDate === yesterday) {
+                newStreak = attendanceStreak + 1;
+            } else if (lastCheckDate !== today) {
+                newStreak = 1;
+            }
+        } else {
+            // 로그인 사용자: Supabase 기반 연속 일수 계산
+            if (lastCheckDate === yesterdayISO) {
+                newStreak = attendanceStreak + 1;
+            } else {
+                newStreak = 1;
+            }
         }
         
         setChecked(true);
         setAttendanceStreak(newStreak);
-        setLastCheckDate(today);
-        localStorage.setItem('rewardle_attendance_streak', newStreak.toString());
-        localStorage.setItem('rewardle_last_check', today);
+        setLastCheckDate(userId.startsWith('guest_') ? today : todayISO);
         
         // 기본 출석 포인트
         let totalPoints = 2;
@@ -67,13 +127,41 @@ const AttendancePage: React.FC = () => {
             bonusMessage = ' (+한달 채우기 20P)';
         }
         
-        addPoints(totalPoints, `일일 출석 체크${bonusMessage}`);
+        // 포인트 지급
+        await addPoints(totalPoints, `일일 출석 체크${bonusMessage}`);
+        
+        // 출석 기록 저장
+        if (userId.startsWith('guest_')) {
+            // 게스트: localStorage에 저장
+            localStorage.setItem('rewardle_attendance_streak', newStreak.toString());
+            localStorage.setItem('rewardle_last_check', today);
+        } else {
+            // 로그인 사용자: Supabase에 저장
+            try {
+                await supabase.from('attendance').insert({
+                    user_id: userId,
+                    check_date: todayISO,
+                    streak: newStreak
+                });
+            } catch (error) {
+                console.error('Failed to save attendance to Supabase:', error);
+            }
+        }
     };
+
 
     const today = new Date().getDate();
     const currentMonth = new Date().getMonth() + 1; // 1-12
     const currentYear = new Date().getFullYear();
     const daysInMonth = new Date(currentYear, currentMonth, 0).getDate(); // 해당 월의 총 일수
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-[#fafafa]">
+                <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary border-t-transparent"></div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col min-h-screen bg-[#fafafa]">

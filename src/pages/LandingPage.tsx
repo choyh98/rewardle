@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ChevronRight, Award } from 'lucide-react';
+import { ChevronRight, Award, LogOut } from 'lucide-react';
 import { usePoints } from '../context/PointsContext';
 import { getDefaultBrand, type Brand } from '../data/brands';
+import { supabase } from '../lib/supabase';
 import appleIcon from '../assets/apple.png';
 import wordleIcon from '../assets/wordle.png';
 import checkIcon from '../assets/check.png';
@@ -11,9 +12,11 @@ import pointIcon from '../assets/point.png';
 import backgroundImage from '../assets/background.png';
 
 const LandingPage: React.FC = () => {
-    const { points, dailyGamesRemaining, gameHistory } = usePoints();
+    const navigate = useNavigate();
+    const { points, dailyGamesRemaining, gameHistory, userId } = usePoints();
     const [defaultBrand, setDefaultBrand] = useState<Brand | null>(null);
     const [showGameHistoryModal, setShowGameHistoryModal] = useState(false);
+    const [isGuest, setIsGuest] = useState(false);
 
     useEffect(() => {
         const loadBrand = async () => {
@@ -21,7 +24,17 @@ const LandingPage: React.FC = () => {
             setDefaultBrand(brand);
         };
         loadBrand();
-    }, []);
+
+        // 게스트 사용자 확인
+        setIsGuest(userId?.startsWith('guest_') || false);
+    }, [userId]);
+
+    const handleLogout = async () => {
+        if (confirm('로그아웃 하시겠습니까?')) {
+            await supabase.auth.signOut();
+            navigate('/login');
+        }
+    };
 
     return (
         <div className="bg-[#fafafa] flex flex-col items-center min-h-screen w-full pb-10">
@@ -63,7 +76,16 @@ const LandingPage: React.FC = () => {
                 </div>
 
                 {/* Floating Point Header */}
-                <div className="absolute top-6 right-6 z-20">
+                <div className="absolute top-6 right-6 z-20 flex gap-2">
+                    {!isGuest && (
+                        <button
+                            onClick={handleLogout}
+                            className="bg-white/95 backdrop-blur-sm rounded-full p-2 shadow-lg active:scale-95 transition-transform border border-white/20"
+                            title="로그아웃"
+                        >
+                            <LogOut className="text-gray-600 size-5" />
+                        </button>
+                    )}
                     <Link to="/points-history" className="bg-white/95 backdrop-blur-sm rounded-full py-2 px-4 flex items-center gap-3 shadow-lg active:scale-95 transition-transform border border-white/20">
                         <div className="bg-primary p-1.5 rounded-full">
                             <Award className="text-white size-5" />
@@ -128,10 +150,16 @@ const LandingPage: React.FC = () => {
                 </div>
 
                 {/* Admin/Merchant Prompt */}
-                <div className="pt-2">
+                <div className="pt-2 space-y-3">
                     <Link to="/admin" className="block w-full bg-gray-50 rounded-2xl p-5 text-center text-gray-500 font-semibold hover:bg-gray-100 transition-colors">
                         자영업자이신가요? 퀴즈 등록하러 가기
                     </Link>
+                    
+                    {isGuest && (
+                        <Link to="/login" className="block w-full bg-primary/10 rounded-2xl p-5 text-center text-primary font-semibold hover:bg-primary/20 transition-colors">
+                            로그인하고 데이터 백업하기
+                        </Link>
+                    )}
                 </div>
             </div>
 

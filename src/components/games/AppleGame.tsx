@@ -387,9 +387,10 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
             const allDone = targetSyllables.every(ts =>
                 newSyllables.filter(ns => ns === ts).length >= targetSyllables.filter(s => s === ts).length
             );
-            if (allDone && !showWordComplete && !gameCompleted) {
+            if (allDone && !showWordComplete && !gameCompleted && !isFinished) {
                 setShowWordComplete(true);
                 setGameCompleted(true); // 게임 완료 마킹
+                setIsFinished(true); // 타이머 중지
                 onComplete(5); // 5P 즉시 지급
             }
         } else {

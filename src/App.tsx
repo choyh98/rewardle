@@ -26,16 +26,16 @@ function App() {
       <Router>
         <div className="max-w-[500px] mx-auto min-h-screen bg-white shadow-xl relative overflow-hidden">
           <Suspense fallback={<LoadingFallback />}>
-            <Routes>
-              <Route path="/" element={<LoginPage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/home" element={<LandingPage />} />
-              <Route path="/game/:type" element={<GamePage />} />
-              <Route path="/attendance" element={<AttendancePage />} />
-              <Route path="/points-history" element={<PointsHistoryPage />} />
-              <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+          <Routes>
+            <Route path="/" element={<LoginPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/home" element={<LandingPage />} />
+            <Route path="/game/:type" element={<GamePage />} />
+            <Route path="/attendance" element={<AttendancePage />} />
+            <Route path="/points-history" element={<PointsHistoryPage />} />
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
           </Suspense>
         </div>
       </Router>
