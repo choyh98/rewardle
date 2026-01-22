@@ -85,7 +85,6 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
     const [showWordComplete, setShowWordComplete] = useState(false);
     const [showQuiz, setShowQuiz] = useState(false);
     const [quizAnswer, setQuizAnswer] = useState('');
-    const [showQuizResult, setShowQuizResult] = useState(false);
     const [quizResult, setQuizResult] = useState<{ correct: boolean } | null>(null);
     const [quizSubmitted, setQuizSubmitted] = useState(false); // 퀴즈 제출 여부 추적
     const [hintCells, setHintCells] = useState<Cell[]>([]); // 힌트로 빛나는 셀들
