@@ -423,7 +423,7 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
     const progress = ((120 - timeLeft) / 120) * 100;
 
     return (
-        <div className="flex flex-col h-screen bg-gradient-to-b from-[#f5e6d3] to-[#ffcccb] overflow-hidden relative" onMouseUp={handleEnd} onTouchEnd={handleEnd} onTouchMove={handleTouchMove}>
+        <div className="flex flex-col h-screen bg-gradient-to-b from-[#f5e6d3] to-[#ffcccb] overflow-hidden relative touch-none" onMouseUp={handleEnd} onTouchEnd={handleEnd} onTouchMove={handleTouchMove}>
             {/* Header */}
             <header className="flex items-center justify-between px-4 py-2.5">
                 <button onClick={onBack} className="p-2"><ArrowLeft size={24} /></button>

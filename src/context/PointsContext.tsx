@@ -182,14 +182,15 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const addPoints = async (amount: number, reason: string) => {
         if (amount <= 0) return;
 
-        setPoints(prev => prev + amount);
+        const newPoints = points + amount;
+        setPoints(newPoints);
         const newHistoryItem = { date: new Date().toISOString(), reason, amount };
         setHistory(prev => [newHistoryItem, ...prev]);
 
         if (userId?.startsWith('guest_')) {
             // 게스트: localStorage에 저장
             try {
-                localStorage.setItem('rewardle_points', (points + amount).toString());
+                localStorage.setItem('rewardle_points', newPoints.toString());
                 localStorage.setItem('rewardle_history', JSON.stringify([newHistoryItem, ...history]));
             } catch (error) {
                 console.error('Failed to save to localStorage:', error);
@@ -204,12 +205,12 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     reason
                 });
 
-                // 2. 총 포인트 업데이트
+                // 2. 총 포인트 업데이트 (최신 값 사용)
                 await supabase
                     .from('user_points')
                     .upsert({ 
                         user_id: userId, 
-                        points: points + amount 
+                        points: newPoints 
                     });
             } catch (error) {
                 console.error('Failed to save points to Supabase:', error);

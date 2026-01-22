@@ -12,6 +12,7 @@ const GamePage: React.FC = () => {
     const { addPoints, recordGameCompletion, canPlayGame } = usePoints();
     const [isLoading, setIsLoading] = useState(true);
     const [brand, setBrand] = useState<Brand | null>(null);
+    const [gameStarted, setGameStarted] = useState(false);
 
     const brandId = searchParams.get('brand') || 'aquagarden';
 
@@ -38,13 +39,18 @@ const GamePage: React.FC = () => {
         loadBrandAndCheckLimit();
     }, [brandId, canPlayGame, navigate]);
 
+    // 게임 시작 시 횟수 차감 (한 번만 실행)
+    useEffect(() => {
+        if (brand && !gameStarted && !isLoading) {
+            const gameTypeKey = type === 'wordle' ? 'wordle' : 'apple';
+            recordGameCompletion(gameTypeKey as 'wordle' | 'apple', brand.id);
+            setGameStarted(true);
+        }
+    }, [brand, gameStarted, isLoading, type, recordGameCompletion]);
+
     const handleComplete = (earnedPoints: number) => {
         if (!brand) return;
         const gameType = type === 'wordle' ? '워들 게임' : '사과 게임';
-        const gameTypeKey = type === 'wordle' ? 'wordle' : 'apple';
-        
-        // 포인트 획득 여부와 관계없이 항상 게임 횟수 차감 (brand.id 전달)
-        recordGameCompletion(gameTypeKey as 'wordle' | 'apple', brand.id);
         
         if (earnedPoints > 0) {
             addPoints(earnedPoints, `${brand.name} ${gameType} 완료`);

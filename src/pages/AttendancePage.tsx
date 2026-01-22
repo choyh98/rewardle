@@ -138,11 +138,21 @@ const AttendancePage: React.FC = () => {
         } else {
             // 로그인 사용자: Supabase에 저장
             try {
-                await supabase.from('attendance').insert({
-                    user_id: userId,
-                    check_date: todayISO,
-                    streak: newStreak
-                });
+                // 중복 체크 후 삽입
+                const { data: existingRecord } = await supabase
+                    .from('attendance')
+                    .select('id')
+                    .eq('user_id', userId)
+                    .eq('check_date', todayISO)
+                    .maybeSingle();
+
+                if (!existingRecord) {
+                    await supabase.from('attendance').insert({
+                        user_id: userId,
+                        check_date: todayISO,
+                        streak: newStreak
+                    });
+                }
             } catch (error) {
                 console.error('Failed to save attendance to Supabase:', error);
             }
