@@ -12,7 +12,7 @@ const GamePage: React.FC = () => {
     const { addPoints, recordGameCompletion, canPlayGame } = usePoints();
     const [isLoading, setIsLoading] = useState(true);
     const [brand, setBrand] = useState<Brand | null>(null);
-    const [gameStarted, setGameStarted] = useState(false);
+    const [gameCompleted, setGameCompleted] = useState(false);
 
     const brandId = searchParams.get('brand') || 'aquagarden';
 
@@ -39,18 +39,35 @@ const GamePage: React.FC = () => {
         loadBrandAndCheckLimit();
     }, [brandId, canPlayGame, navigate]);
 
-    // 게임 시작 시 횟수 차감 (한 번만 실행)
+    // 게임 도중 페이지를 떠날 때 횟수 차감 (뒤로가기 등)
     useEffect(() => {
-        if (brand && !gameStarted && !isLoading) {
-            const gameTypeKey = type === 'wordle' ? 'wordle' : 'apple';
-            recordGameCompletion(gameTypeKey as 'wordle' | 'apple', brand.id);
-            setGameStarted(true);
-        }
-    }, [brand, gameStarted, isLoading, type, recordGameCompletion]);
+        if (!brand || gameCompleted) return;
+
+        const handleBeforeUnload = () => {
+            if (!gameCompleted) {
+                const gameTypeKey = type === 'wordle' ? 'wordle' : 'apple';
+                recordGameCompletion(gameTypeKey as 'wordle' | 'apple', brand.id);
+            }
+        };
+
+        // 페이지 언마운트 시 실행
+        return () => {
+            if (!gameCompleted) {
+                const gameTypeKey = type === 'wordle' ? 'wordle' : 'apple';
+                recordGameCompletion(gameTypeKey as 'wordle' | 'apple', brand.id);
+            }
+        };
+    }, [brand, gameCompleted, type, recordGameCompletion]);
 
     const handleComplete = (earnedPoints: number) => {
-        if (!brand) return;
+        if (!brand || gameCompleted) return;
+        
         const gameType = type === 'wordle' ? '워들 게임' : '사과 게임';
+        const gameTypeKey = type === 'wordle' ? 'wordle' : 'apple';
+        
+        // 게임 완료 시점에 횟수 차감
+        recordGameCompletion(gameTypeKey as 'wordle' | 'apple', brand.id);
+        setGameCompleted(true);
         
         if (earnedPoints > 0) {
             addPoints(earnedPoints, `${brand.name} ${gameType} 완료`);
