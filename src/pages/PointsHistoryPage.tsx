@@ -1,22 +1,12 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Award, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Award } from 'lucide-react';
 import { usePoints } from '../context/PointsContext';
 
 const PointsHistoryPage: React.FC = () => {
     const navigate = useNavigate();
     const { points, history } = usePoints();
-    
-    // 이번 달 적립 포인트 계산
-    const thisMonthPoints = history
-        .filter(item => {
-            const itemDate = new Date(item.date);
-            const now = new Date();
-            return itemDate.getMonth() === now.getMonth() && 
-                   itemDate.getFullYear() === now.getFullYear();
-        })
-        .reduce((sum, item) => sum + item.amount, 0);
 
     return (
         <div className="flex flex-col min-h-screen bg-[#fafafa]">
@@ -39,10 +29,6 @@ const PointsHistoryPage: React.FC = () => {
                     <div className="flex items-end gap-2">
                         <span className="text-5xl font-black">{points.toLocaleString()}</span>
                         <span className="text-2xl font-bold mb-1.5">P</span>
-                    </div>
-                    <div className="mt-6 inline-flex items-center gap-2 bg-white/20 rounded-full px-4 py-2 backdrop-blur-sm">
-                        <TrendingUp size={16} />
-                        <span className="text-sm font-bold">이번 달 +{thisMonthPoints.toLocaleString()}P 적립</span>
                     </div>
                 </motion.div>
 
