@@ -112,7 +112,6 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             const savedHistory = localStorage.getItem('rewardle_history');
             const savedDailyGames = localStorage.getItem('rewardle_daily_games');
             const savedGameHistory = localStorage.getItem('rewardle_game_history');
-            const savedResetTime = localStorage.getItem('rewardle_reset_time');
 
             setPoints(savedPoints ? parseInt(savedPoints) : 0);
             setHistory(savedHistory ? JSON.parse(savedHistory) : []);

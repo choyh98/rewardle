@@ -8,7 +8,6 @@ import { getDefaultBrand, type Brand } from '../data/brands';
 import { supabase } from '../lib/supabase';
 import appleIcon from '../assets/apple.png';
 import wordleIcon from '../assets/wordle.png';
-import shootingIcon from '../assets/wordle.png'; // 임시로 wordle 아이콘 사용
 import checkIcon from '../assets/check.png';
 import pointIcon from '../assets/point.png';
 import backgroundImage from '../assets/background.png';

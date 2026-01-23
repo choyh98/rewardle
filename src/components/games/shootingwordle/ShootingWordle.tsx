@@ -322,7 +322,7 @@ interface ConveyorRowProps {
     direction: 'left' | 'right';
 }
 
-const ConveyorRow: React.FC<ConveyorRowProps> = ({ id, targetChar, isActive, characters, projectiles, onHit, speed, delay, direction }) => {
+const ConveyorRow: React.FC<ConveyorRowProps> = ({ isActive, characters, projectiles, onHit, speed, delay, direction }) => {
     const displayChars = [...characters, ...characters];
 
     return (
