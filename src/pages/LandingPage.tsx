@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ChevronRight, Award, LogOut } from 'lucide-react';
+import { ChevronRight, Award, LogOut, Target } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { usePoints } from '../context/PointsContext';
 import { getDefaultBrand, type Brand } from '../data/brands';
 import { supabase } from '../lib/supabase';
 import appleIcon from '../assets/apple.png';
 import wordleIcon from '../assets/wordle.png';
+import shootingIcon from '../assets/wordle.png'; // 임시로 wordle 아이콘 사용
 import checkIcon from '../assets/check.png';
 import pointIcon from '../assets/point.png';
 import backgroundImage from '../assets/background.png';
@@ -15,9 +16,10 @@ import backgroundImage from '../assets/background.png';
 const LandingPage: React.FC = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
-    const { points, dailyGamesRemaining, gameHistory } = usePoints();
+    const { points, dailyGamesRemaining, gameHistory, nextResetTime } = usePoints();
     const [defaultBrand, setDefaultBrand] = useState<Brand | null>(null);
     const [showGameHistoryModal, setShowGameHistoryModal] = useState(false);
+    const [timeRemaining, setTimeRemaining] = useState<string>('');
 
     useEffect(() => {
         const loadBrand = async () => {
@@ -26,6 +28,36 @@ const LandingPage: React.FC = () => {
         };
         loadBrand();
     }, []);
+
+    // 타이머 업데이트
+    useEffect(() => {
+        if (!nextResetTime) {
+            setTimeRemaining('');
+            return;
+        }
+
+        const updateTimer = () => {
+            const now = new Date().getTime();
+            const resetTime = new Date(nextResetTime).getTime();
+            const distance = resetTime - now;
+
+            if (distance < 0) {
+                setTimeRemaining('');
+                return;
+            }
+
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            setTimeRemaining(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+        };
+
+        updateTimer();
+        const interval = setInterval(updateTimer, 1000);
+
+        return () => clearInterval(interval);
+    }, [nextResetTime]);
 
     const handleLogout = async () => {
         if (confirm('로그아웃 하시겠습니까?')) {
@@ -68,6 +100,9 @@ const LandingPage: React.FC = () => {
                         >
                             <p className="text-white/95 text-sm font-bold">
                                 오늘 남은 게임: {dailyGamesRemaining}/10
+                                {timeRemaining && dailyGamesRemaining === 0 && (
+                                    <span className="ml-2 text-yellow-200">({timeRemaining} 후 초기화)</span>
+                                )}
                             </p>
                         </button>
                     </motion.div>
@@ -111,6 +146,26 @@ const LandingPage: React.FC = () => {
                         <div className="flex-1 min-w-0">
                             <h3 className="text-xl font-bold text-gray-800 mb-1 truncate">워들 게임</h3>
                             <p className="text-gray-500 text-sm line-clamp-1">가게명을 맞추고 포인트 받기</p>
+                        </div>
+                        <ChevronRight className="text-primary size-6 flex-shrink-0" />
+                    </Link>
+
+                    <Link 
+                        to={defaultBrand ? `/game/shooting?brand=${defaultBrand.id}` : '#'} 
+                        className="group bg-white rounded-2xl p-6 flex items-center gap-4 shadow-sm hover:shadow-md transition-all active:scale-[0.98] touch-manipulation"
+                        onClick={(e) => {
+                            if (!defaultBrand) {
+                                e.preventDefault();
+                                alert('퀴즈를 불러오는 중입니다. 잠시만 기다려주세요.');
+                            }
+                        }}
+                    >
+                        <div className="h-[48px] w-[48px] flex items-center justify-center">
+                            <Target className="text-[#ff6b6b] size-16 group-hover:scale-105 transition-transform" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <h3 className="text-xl font-bold text-gray-800 mb-1 truncate">슈팅워들 게임</h3>
+                            <p className="text-gray-500 text-sm line-clamp-1">글자를 명중시켜 포인트 받기</p>
                         </div>
                         <ChevronRight className="text-primary size-6 flex-shrink-0" />
                     </Link>
@@ -176,13 +231,19 @@ const LandingPage: React.FC = () => {
                                 {gameHistory.map((game, index) => (
                                     <div key={index} className="flex items-center justify-between py-3 px-4 bg-[#f5f5f5] rounded-[12px]">
                                         <div className="flex items-center gap-3">
-                                            <img 
-                                                src={game.gameType === 'apple' ? appleIcon : wordleIcon} 
-                                                alt={game.gameType === 'apple' ? '사과 게임' : '워들 게임'} 
-                                                className="h-[32px] w-auto object-contain"
-                                            />
+                                            {game.gameType === 'shooting' ? (
+                                                <div className="h-[24px] w-[24px] flex items-center justify-center">
+                                                    <Target className="text-[#ff6b6b] size-8" />
+                                                </div>
+                                            ) : (
+                                                <img 
+                                                    src={game.gameType === 'apple' ? appleIcon : wordleIcon} 
+                                                    alt={game.gameType === 'apple' ? '사과 게임' : '워들 게임'} 
+                                                    className="h-[32px] w-auto object-contain"
+                                                />
+                                            )}
                                             <span className="font-semibold text-[16px] text-[#121212]">
-                                                {game.gameType === 'apple' ? '사과 게임' : '워들 게임'}
+                                                {game.gameType === 'apple' ? '사과 게임' : game.gameType === 'shooting' ? '슈팅워들 게임' : '워들 게임'}
                                             </span>
                                         </div>
                                         <span className="font-bold text-[16px] text-[#ff6b6b]">-1</span>

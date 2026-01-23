@@ -13,6 +13,7 @@ interface PointsContextType {
     dailyGamesRemaining: number;
     gameHistory: GameHistory[];
     isLoading: boolean;
+    nextResetTime: Date | null;
 }
 
 const PointsContext = createContext<PointsContextType | undefined>(undefined);
@@ -24,11 +25,12 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const [isLoading, setIsLoading] = useState(true);
     const [points, setPoints] = useState<number>(0);
     const [history, setHistory] = useState<PointHistory[]>([]);
-    const [dailyGames, setDailyGames] = useState<{ date: string; count: number }>({ 
+    const [dailyGames, setDailyGames] = useState<{ date: string; count: number; resetTime?: string }>({ 
         date: new Date().toDateString(), 
         count: 0 
     });
     const [gameHistory, setGameHistory] = useState<GameHistory[]>([]);
+    const [nextResetTime, setNextResetTime] = useState<Date | null>(null);
 
     const totalGamesPlayed = dailyGames.count;
 
@@ -55,6 +57,54 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         loadUserData();
     }, [user]);
 
+    // 24시간 타이머 관리 및 자동 초기화
+    useEffect(() => {
+        const checkAndResetGames = () => {
+            const today = new Date().toDateString();
+            
+            // 날짜가 바뀌면 자동 초기화
+            if (dailyGames.date !== today) {
+                const newDailyGames = { date: today, count: 0 };
+                setDailyGames(newDailyGames);
+                setGameHistory([]);
+                setNextResetTime(null);
+                
+                // localStorage 업데이트
+                if (user?.isGuest) {
+                    localStorage.setItem('rewardle_daily_games', JSON.stringify(newDailyGames));
+                    localStorage.setItem('rewardle_game_history', JSON.stringify([]));
+                    localStorage.removeItem('rewardle_reset_time');
+                }
+            }
+            
+            // resetTime이 있고 게임 횟수가 0인 경우 타이머 설정
+            if (dailyGames.resetTime && dailyGames.count === 0) {
+                const resetTime = new Date(dailyGames.resetTime);
+                if (resetTime > new Date()) {
+                    setNextResetTime(resetTime);
+                } else {
+                    // 타이머가 만료되었으면 초기화
+                    const newDailyGames = { date: today, count: 0 };
+                    setDailyGames(newDailyGames);
+                    setNextResetTime(null);
+                    
+                    if (user?.isGuest) {
+                        localStorage.setItem('rewardle_daily_games', JSON.stringify(newDailyGames));
+                        localStorage.removeItem('rewardle_reset_time');
+                    }
+                }
+            }
+        };
+
+        // 초기 체크
+        checkAndResetGames();
+
+        // 1분마다 체크
+        const interval = setInterval(checkAndResetGames, 60000);
+        
+        return () => clearInterval(interval);
+    }, [dailyGames, user]);
+
     // localStorage에서 데이터 로드
     const loadFromLocalStorage = async () => {
         try {
@@ -62,6 +112,7 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             const savedHistory = localStorage.getItem('rewardle_history');
             const savedDailyGames = localStorage.getItem('rewardle_daily_games');
             const savedGameHistory = localStorage.getItem('rewardle_game_history');
+            const savedResetTime = localStorage.getItem('rewardle_reset_time');
 
             setPoints(savedPoints ? parseInt(savedPoints) : 0);
             setHistory(savedHistory ? JSON.parse(savedHistory) : []);
@@ -69,7 +120,16 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             if (savedDailyGames) {
                 const data = JSON.parse(savedDailyGames);
                 const today = new Date().toDateString();
-                setDailyGames(data.date === today ? data : { date: today, count: 0 });
+                if (data.date === today) {
+                    setDailyGames(data);
+                    // resetTime이 있으면 설정
+                    if (data.resetTime) {
+                        setNextResetTime(new Date(data.resetTime));
+                    }
+                } else {
+                    setDailyGames({ date: today, count: 0 });
+                    setNextResetTime(null);
+                }
             }
 
             if (savedGameHistory) {
@@ -138,23 +198,29 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (!user) return;
 
         const today = new Date().toDateString();
+        const newCount = dailyGames.date !== today ? 1 : dailyGames.count + 1;
         
         // 로컬 상태 업데이트
         setGameHistory(prev => [...prev, { date: today, gameType }]);
         
-        if (dailyGames.date !== today) {
-            setDailyGames({ date: today, count: 1 });
-        } else {
-            setDailyGames(prev => ({ ...prev, count: prev.count + 1 }));
+        // 게임 횟수가 10이 되면 24시간 후 초기화 시간 설정
+        let resetTime: string | undefined = undefined;
+        if (newCount === DAILY_GAME_LIMIT) {
+            const reset = new Date();
+            reset.setHours(reset.getHours() + 24);
+            resetTime = reset.toISOString();
+            setNextResetTime(reset);
         }
+        
+        const newDailyGames = dailyGames.date !== today 
+            ? { date: today, count: 1, resetTime }
+            : { ...dailyGames, count: newCount, resetTime: resetTime || dailyGames.resetTime };
+        
+        setDailyGames(newDailyGames);
 
         if (user.isGuest) {
             // 게스트: localStorage에 저장
             try {
-                const newDailyGames = dailyGames.date !== today 
-                    ? { date: today, count: 1 }
-                    : { ...dailyGames, count: dailyGames.count + 1 };
-                
                 localStorage.setItem('rewardle_daily_games', JSON.stringify(newDailyGames));
                 localStorage.setItem('rewardle_game_history', JSON.stringify([...gameHistory, { date: today, gameType }]));
             } catch (error) {
@@ -190,7 +256,8 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             canPlayGame,
             dailyGamesRemaining,
             gameHistory,
-            isLoading
+            isLoading,
+            nextResetTime
         }}>
             {children}
         </PointsContext.Provider>

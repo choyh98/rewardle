@@ -1,18 +1,16 @@
 import React from 'react';
 
-interface AppleFailModalProps {
-    score: number;
+interface ShootingWordleFailModalProps {
     onRetry: () => void;
     onGoHome: () => void;
 }
 
-export const AppleFailModal: React.FC<AppleFailModalProps> = ({ score, onRetry, onGoHome }) => {
+export const ShootingWordleFailModal: React.FC<ShootingWordleFailModalProps> = ({ onRetry, onGoHome }) => {
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6">
             <div className="bg-white rounded-[16px] p-[32px] max-w-[320px] text-center">
                 <div className="mb-[20px]">
                     <p className="font-bold text-[24px] text-[#ff8800] mb-[8px]">시간 종료!</p>
-                    <p className="font-medium text-[16px] text-[#121212] mb-[12px]">최종 점수: {score}점</p>
                     <p className="font-normal text-[14px] text-[#737373]">다시 도전해보세요!</p>
                 </div>
 

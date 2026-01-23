@@ -2,8 +2,10 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import WordleGame from '../components/games/WordleGame';
 import AppleGame from '../components/games/AppleGame';
+import ShootingWordle from '../components/games/shootingwordle/ShootingWordle';
 import { getBrandById, markBrandAsCompleted, type Brand } from '../data/brands';
 import { usePoints } from '../context/PointsContext';
+import type { GameType } from '../types';
 
 const GamePage: React.FC = () => {
     const { type } = useParams<{ type: string }>();
@@ -43,14 +45,14 @@ const GamePage: React.FC = () => {
     const handleDeductPlay = () => {
         if (!brand || hasRecorded.current) return;
         hasRecorded.current = true;
-        const gameTypeKey = type === 'wordle' ? 'wordle' : 'apple';
-        recordGameCompletion(gameTypeKey as 'wordle' | 'apple', brand.id);
+        const gameTypeKey = type === 'wordle' ? 'wordle' : type === 'shooting' ? 'shooting' : 'apple';
+        recordGameCompletion(gameTypeKey as GameType, brand.id);
     };
 
     const handleComplete = (earnedPoints: number) => {
         if (!brand) return;
         
-        const gameType = type === 'wordle' ? '워들 게임' : '사과 게임';
+        const gameType = type === 'wordle' ? '워들 게임' : type === 'shooting' ? '슈팅워들 게임' : '사과 게임';
         
         if (earnedPoints > 0) {
             addPoints(earnedPoints, `${brand.name} ${gameType} 완료`);
@@ -82,6 +84,10 @@ const GamePage: React.FC = () => {
 
     if (type === 'apple') {
         return <AppleGame brand={brand} onComplete={handleComplete} onBack={handleBack} onDeductPlay={handleDeductPlay} />;
+    }
+
+    if (type === 'shooting') {
+        return <ShootingWordle brand={brand} onComplete={handleComplete} onBack={handleBack} onDeductPlay={handleDeductPlay} />;
     }
 
     return (

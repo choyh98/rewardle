@@ -16,7 +16,7 @@ export interface PointHistory {
 }
 
 // 게임
-export type GameType = 'wordle' | 'apple';
+export type GameType = 'wordle' | 'apple' | 'shooting';
 
 export interface GameHistory {
     date: string;

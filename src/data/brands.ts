@@ -14,6 +14,7 @@ interface Brand {
     placeQuiz: QuizData;
     placeUrl: string;
     appleGameWord: string;
+    shootingWordleAnswer: string; // 슈팅워들 정답 추가
 }
 
 // 캐시 데이터 구조
@@ -74,7 +75,8 @@ export const fetchBrands = async (): Promise<Brand[]> => {
                 bonusPoints: 5
             },
             placeUrl: item.place_url,
-            appleGameWord: item.apple_game_word
+            appleGameWord: item.apple_game_word,
+            shootingWordleAnswer: item.shooting_wordle_answer || item.name // 없으면 가게명 사용
         }));
 
         // 새 데이터로 캐시 업데이트

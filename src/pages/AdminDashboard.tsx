@@ -16,6 +16,7 @@ const AdminDashboard: React.FC = () => {
         name: '',
         wordleAnswer: '',
         appleGameWord: '',
+        shootingWordleAnswer: '',
         hintImage: '',
         question: '',
         answer: '',
@@ -23,6 +24,7 @@ const AdminDashboard: React.FC = () => {
     });
     const [useNameForWordle, setUseNameForWordle] = useState(false);
     const [useNameForApple, setUseNameForApple] = useState(false);
+    const [useNameForShooting, setUseNameForShooting] = useState(false);
 
     const handlePasswordSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -45,6 +47,10 @@ const AdminDashboard: React.FC = () => {
             alert('사과 게임 단어는 최소 3글자 이상이어야 합니다.');
             return;
         }
+        if (newBrand.shootingWordleAnswer.length < 3) {
+            alert('슈팅워들 정답은 최소 3글자 이상이어야 합니다.');
+            return;
+        }
         if (!newBrand.name || !newBrand.question || !newBrand.answer || !newBrand.placeUrl) {
             alert('모든 필수 항목을 입력해주세요.\n(사진은 선택사항입니다)');
             return;
@@ -62,6 +68,7 @@ const AdminDashboard: React.FC = () => {
                         name: newBrand.name,
                         wordle_answer: wordleAnswerArray,
                         apple_game_word: newBrand.appleGameWord,
+                        shooting_wordle_answer: newBrand.shootingWordleAnswer,
                         hint_image: newBrand.hintImage || null, // 사진 선택사항으로
                         place_quiz_question: newBrand.question,
                         place_quiz_answer: newBrand.answer,
@@ -89,6 +96,7 @@ const AdminDashboard: React.FC = () => {
                 name: '',
                 wordleAnswer: '',
                 appleGameWord: '',
+                shootingWordleAnswer: '',
                 hintImage: '',
                 question: '',
                 answer: '',
@@ -186,7 +194,8 @@ const AdminDashboard: React.FC = () => {
                                         ...newBrand, 
                                         name,
                                         wordleAnswer: useNameForWordle ? name : newBrand.wordleAnswer,
-                                        appleGameWord: useNameForApple ? name : newBrand.appleGameWord
+                                        appleGameWord: useNameForApple ? name : newBrand.appleGameWord,
+                                        shootingWordleAnswer: useNameForShooting ? name : newBrand.shootingWordleAnswer
                                     });
                                 }}
                             />
@@ -257,6 +266,40 @@ const AdminDashboard: React.FC = () => {
                             />
                             <p className="text-xs text-gray-400 mt-2">
                                 사과 게임에서 모을 글자를 입력하세요 (최소 3글자) • <span className="text-primary font-bold">5글자를 추천드려요</span>
+                            </p>
+                        </div>
+
+                        <div>
+                            <div className="flex items-center justify-between mb-2">
+                                <label className="text-sm font-black text-gray-700 flex items-center gap-2">
+                                    🎯 슈팅워들 정답
+                                </label>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={useNameForShooting}
+                                        onChange={(e) => {
+                                            setUseNameForShooting(e.target.checked);
+                                            if (e.target.checked) {
+                                                setNewBrand({ ...newBrand, shootingWordleAnswer: newBrand.name });
+                                            }
+                                        }}
+                                        className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+                                    />
+                                    <span className="text-xs text-gray-600 font-medium">매장명과 동일</span>
+                                </label>
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="예: 가나다카페"
+                                className="w-full h-14 bg-gray-50 border-transparent rounded-2xl px-5 focus:bg-white focus:border-primary focus:outline-none transition-all font-medium disabled:opacity-50"
+                                value={newBrand.shootingWordleAnswer}
+                                onChange={e => setNewBrand({ ...newBrand, shootingWordleAnswer: e.target.value })}
+                                disabled={useNameForShooting}
+                                minLength={3}
+                            />
+                            <p className="text-xs text-gray-400 mt-2">
+                                슈팅워들에서 맞출 단어를 입력하세요 (최소 3글자) • <span className="text-primary font-bold">5글자를 추천드려요</span>
                             </p>
                         </div>
 

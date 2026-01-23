@@ -10,7 +10,6 @@ export const AppleSuccessModal: React.FC<AppleSuccessModalProps> = ({ onStartMis
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6">
             <div className="bg-white rounded-[16px] p-[32px] max-w-[320px] text-center">
                 <div className="mb-[20px]">
-                    <div className="text-[48px] mb-[12px]">🎉</div>
                     <p className="font-bold text-[24px] text-[#28c52d] mb-[8px]">정답입니다!</p>
                     <p className="font-semibold text-[20px] text-[#121212]">5포인트가 적립되었습니다.</p>
                 </div>

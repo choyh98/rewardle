@@ -49,8 +49,6 @@ const WordleGame: React.FC<WordleGameProps> = ({ brand, onComplete, onBack, onDe
     const [tiles, setTiles] = useState<string[]>([]);
     const [keyStates, setKeyStates] = useState<Record<string, CellState>>({});
     const [showMission, setShowMission] = useState(false);
-    const [missionAnswer, setMissionAnswer] = useState('');
-    const [missionResult, setMissionResult] = useState<'none' | 'success' | 'fail'>('none');
     const [showHint, setShowHint] = useState(false);
     const [gameCompleted, setGameCompleted] = useState(false); // 게임 완료 여부 추적
 
@@ -145,21 +143,12 @@ const WordleGame: React.FC<WordleGameProps> = ({ brand, onComplete, onBack, onDe
         }
     };
 
-    const handleMissionSubmit = () => {
-        // 성공했으면 중복 방지 (실패는 다시 시도 가능)
-        if (missionResult === 'success') return;
-        
-        if (missionAnswer === brand.placeQuiz.answer) {
-            setMissionResult('success');
-            addPoints(5, `${brand.name} 워들 추가 미션 완료`); // 워들 추가미션 5P
-        } else {
-            setMissionResult('fail');
-            // 실패 시 입력창 초기화 (2초 후)
-            setMissionAnswer('');
-            setTimeout(() => {
-                setMissionResult('none');
-            }, 2000);
+    const handleMissionSubmit = (userAnswer: string): boolean => {
+        if (userAnswer === brand.placeQuiz.answer) {
+            addPoints(5, `${brand.name} 워들 추가 미션 완료`);
+            return true;
         }
+        return false;
     };
 
     const getKeyColor = (char: string) => {
@@ -364,15 +353,14 @@ const WordleGame: React.FC<WordleGameProps> = ({ brand, onComplete, onBack, onDe
             {/* Mission modal */}
             {showMission && (
                 <WordleMissionModal
-                    brand={brand}
-                    missionAnswer={missionAnswer}
-                    missionResult={missionResult}
-                    onAnswerChange={setMissionAnswer}
-                    onSubmit={handleMissionSubmit}
-                    onGoHome={() => {
+                    question={brand.placeQuiz.question}
+                    placeUrl={brand.placeUrl}
+                    bonusPoints={5}
+                    onHome={() => {
                         onDeductPlay();
                         onBack();
                     }}
+                    onSubmit={handleMissionSubmit}
                 />
             )}
 

@@ -5,7 +5,7 @@ import appleImage from '../../assets/apple.png';
 import { usePoints } from '../../context/PointsContext';
 import { AppleHelpModal } from './apple/AppleHelpModal';
 import { AppleSuccessModal } from './apple/AppleSuccessModal';
-import { AppleMissionModal } from './apple/AppleMissionModal';
+import { AppleMissionModal } from './apple/AppleModals';
 import { AppleFailModal } from './apple/AppleFailModal';
 
 const MaterialSymbolsHelpRounded = () => (
@@ -46,11 +46,11 @@ const StartScreen: React.FC<{ onStart: () => void; onShowHelp: () => void; onBac
 
             {/* Apple Image */}
             <div className="flex items-center justify-center">
-                <img src={appleImage} alt="사과" loading="lazy" className="w-[280px] h-[280px] object-contain" />
+                <img src={appleImage} alt="사과" loading="lazy" className="w-[320px] h-[320px] object-contain" />
             </div>
 
             {/* Title */}
-            <div className="relative w-full">
+            <div className="relative w-full -mt-[200px]">
                 <div className="flex flex-col items-center">
                     <p className="font-black italic text-[64px] text-[#b90000] text-shadow-[3px_4px_1.3px_rgba(0,0,0,0.1)] tracking-[3.84px] leading-none">
                         사과게임
@@ -82,7 +82,6 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
     const [isFinished, setIsFinished] = useState(false);
     const [showWordComplete, setShowWordComplete] = useState(false);
     const [showQuiz, setShowQuiz] = useState(false);
-    const [quizAnswer, setQuizAnswer] = useState('');
     const [quizResult, setQuizResult] = useState<{ correct: boolean } | null>(null);
     const [quizSubmitted, setQuizSubmitted] = useState(false); // 퀴즈 제출 여부 추적
     const [hintCells, setHintCells] = useState<Cell[]>([]); // 힌트로 빛나는 셀들
@@ -355,10 +354,18 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
             if (Math.floor(newScore / 4) > Math.floor(lastRevealScore / 4)) {
                 setLastRevealScore(newScore);
                 
-                // 아직 획득하지 않은 글자들 찾기
-                const remainingSyllables = targetSyllables.filter((ts, idx) => 
-                    collectedSyllables.filter(cs => cs === ts).length < targetSyllables.filter((s, i) => s === ts && i <= idx).length
-                );
+                // 아직 획득하지 않은 글자들 찾기 (순서대로)
+                const remainingSyllables: string[] = [];
+                for (let i = 0; i < targetSyllables.length; i++) {
+                    const targetSyllable = targetSyllables[i];
+                    const requiredCount = targetSyllables.slice(0, i + 1).filter(s => s === targetSyllable).length;
+                    const currentCount = newSyllables.filter(s => s === targetSyllable).length;
+                    
+                    if (currentCount < requiredCount) {
+                        remainingSyllables.push(targetSyllable);
+                        break; // 순서대로 하나씩만 획득
+                    }
+                }
 
                 // 점수에 따라 확률 증가: 20점 미만 30%, 20점 이상 60%
                 let probability = 0.3; // 기본 30%
@@ -366,15 +373,15 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
                     probability = 0.6; // 60%
                 }
 
-                // 확률에 따라 글자 하나 자동 획득
+                // 확률에 따라 글자 하나 자동 획득 (순서대로 첫 번째만)
                 if (remainingSyllables.length > 0 && Math.random() < probability) {
-                    const randomSyllable = remainingSyllables[Math.floor(Math.random() * remainingSyllables.length)];
-                    newSyllables.push(randomSyllable);
+                    const nextSyllable = remainingSyllables[0]; // 순서대로 첫 번째 글자만
+                    newSyllables.push(nextSyllable);
                     setCollectedSyllables(newSyllables);
                     
                     // 화면 중앙에서 글자 모으기 칸으로 날아가는 애니메이션
                     const flyingItem = {
-                        syllable: randomSyllable,
+                        syllable: nextSyllable,
                         id: Date.now() + Math.random(),
                         fromX: window.innerWidth / 2,
                         fromY: window.innerHeight / 2
@@ -402,22 +409,21 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
         setSelection([]);
     }, [isSelecting, selection, grid, collectedSyllables, targetSyllables, showWordComplete, score, lastRevealScore, gameCompleted, onComplete]);
 
-    const handleQuizSubmit = () => {
-        // 성공했으면 중복 방지 (실패는 다시 시도 가능)
-        if (quizSubmitted && quizResult?.correct) return;
+    const handleQuizSubmit = (userAnswer: string): boolean => {
+        // 성공했으면 중복 방지
+        if (quizSubmitted && quizResult?.correct) return false;
         
-        const correct = quizAnswer.trim() === brand.placeQuiz.answer;
+        const correct = userAnswer.trim() === brand.placeQuiz.answer;
         if (correct) {
             setQuizSubmitted(true);
             setIsFinished(true); // 타이머 중지
             addPoints(5, `${brand.name} 사과 추가 미션 완료`); // 사과 추가미션 5P
             setQuizResult({ correct });
         } else {
-            // 실패 시 인라인 메시지만 표시 (워들 게임처럼)
             setQuizResult({ correct: false });
-            setQuizAnswer(''); // 입력값 초기화
-            setTimeout(() => setQuizResult(null), 2000); // 2초 후 메시지 숨김
         }
+        
+        return correct;
     };
 
     const progress = ((120 - timeLeft) / 120) * 100;
@@ -461,7 +467,7 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
             </div>
 
             {/* Syllable Tracker */}
-            <div className="px-4 pb-3 flex items-center justify-center gap-2">
+            <div className="px-4 pb-3 flex justify-center">
                 <div className="syllable-tracker bg-white/90 rounded-[14px] px-3.5 py-2 flex items-center gap-2 shadow-sm">
                     <span className="font-bold text-[12px] text-[#666]">글자 모으기:</span>
                     <div className="flex gap-1">
@@ -485,8 +491,10 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
                         ({collectedSyllables.length}/{brand.appleGameWord.length})
                     </span>
                 </div>
-                
-                {/* 확대/축소 버튼 */}
+            </div>
+
+            {/* 확대/축소 버튼 */}
+            <div className="px-4 pb-3 flex justify-center">
                 <div className="flex gap-1 bg-white/90 rounded-[14px] px-2 py-2 shadow-sm">
                     <button
                         onClick={() => setGridScale(prev => Math.max(0.8, prev - 0.1))}
@@ -595,15 +603,14 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
             {/* Quiz Popup */}
             {showQuiz && (
                 <AppleMissionModal
-                    brand={brand}
-                    quizAnswer={quizAnswer}
-                    quizResult={quizResult}
-                    onAnswerChange={setQuizAnswer}
-                    onSubmit={handleQuizSubmit}
-                    onGoHome={() => {
+                    question={brand.placeQuiz.question}
+                    placeUrl={brand.placeUrl}
+                    bonusPoints={5}
+                    onHome={() => {
                         onDeductPlay();
                         onBack();
                     }}
+                    onSubmit={handleQuizSubmit}
                 />
             )}
 
