@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ChevronRight, Award, LogOut, Target } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -13,7 +13,6 @@ import pointIcon from '../assets/point.png';
 import backgroundImage from '../assets/background.png';
 
 const LandingPage: React.FC = () => {
-    const navigate = useNavigate();
     const { user } = useAuth();
     const { points, dailyGamesRemaining, gameHistory, nextResetTime } = usePoints();
     const [defaultBrand, setDefaultBrand] = useState<Brand | null>(null);

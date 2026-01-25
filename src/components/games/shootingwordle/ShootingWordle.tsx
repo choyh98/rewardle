@@ -84,7 +84,6 @@ const ShootingWordle: React.FC<ShootingWordleProps> = ({ brand, onComplete, onBa
         return targetChars.map((targetChar, idx) => {
             let availablePool = charPool.filter(c => c !== targetChar);
             const shuffledPool = [...availablePool].sort(() => Math.random() - 0.5);
-            const rowElements = [targetChar, ...shuffledPool.slice(0, 11)];
             
             // 정답 글자가 처음에 나오지 않도록 배치
             // 중간~뒤쪽 위치에 정답 글자 배치 (인덱스 4~9 사이)
