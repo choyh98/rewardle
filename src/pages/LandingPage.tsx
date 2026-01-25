@@ -217,7 +217,7 @@ const LandingPage: React.FC = () => {
                     
                     {user && user.isGuest && (
                         <Link to="/login" className="block w-full bg-primary/10 rounded-2xl p-5 text-center text-primary font-semibold hover:bg-primary/20 transition-colors">
-                            로그인하고 데이터 백업하기
+                            로그인하기
                         </Link>
                     )}
                 </div>

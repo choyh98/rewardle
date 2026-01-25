@@ -44,10 +44,17 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 if (user.isGuest) {
                     await loadFromLocalStorage();
                 } else {
-                    await loadFromSupabase();
+                    try {
+                        await loadFromSupabase();
+                    } catch (supabaseError) {
+                        console.error('Supabase load failed, falling back to localStorage:', supabaseError);
+                        // Supabase 실패 시 localStorage로 fallback (포인트 유지)
+                        await loadFromLocalStorage();
+                    }
                 }
             } catch (error) {
                 console.error('Failed to load user data:', error);
+                // 최종 fallback
                 await loadFromLocalStorage();
             } finally {
                 setIsLoading(false);
@@ -55,7 +62,8 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         };
 
         loadUserData();
-    }, [user]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.id, user?.isGuest]); // user 객체 전체가 아닌 id와 isGuest만 의존
 
     // 24시간 타이머 관리 및 자동 초기화
     useEffect(() => {
@@ -115,7 +123,10 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             const savedDailyGames = localStorage.getItem('rewardle_daily_games');
             const savedGameHistory = localStorage.getItem('rewardle_game_history');
 
-            setPoints(savedPoints ? parseInt(savedPoints) : 0);
+            // 포인트 로드 (기존 포인트가 있으면 유지)
+            const loadedPoints = savedPoints ? parseInt(savedPoints) : 0;
+            console.log('localStorage에서 포인트 로드:', loadedPoints);
+            setPoints(loadedPoints);
             setHistory(savedHistory ? JSON.parse(savedHistory) : []);
 
             if (savedDailyGames) {
@@ -128,6 +139,7 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                         setNextResetTime(new Date(data.resetTime));
                     }
                 } else {
+                    // 날짜가 다르면 게임 횟수만 초기화 (포인트는 유지)
                     setDailyGames({ date: today, count: 0 });
                     setNextResetTime(null);
                 }
