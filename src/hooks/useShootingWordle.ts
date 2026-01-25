@@ -104,11 +104,12 @@ export const useShootingWordle = ({ targetWord, onComplete, duration = 60 }: Sho
             setTimeout(() => setHitEffect(null), 500);
 
             if (currentStep + 1 === targetChars.length) {
-                // 마지막 글자는 애니메이션 후 성공 처리
+                // 마지막 글자: 먼저 currentStep을 증가시켜 초록불 표시 후 성공 처리
+                setCurrentStep((prev) => prev + 1);
                 setTimeout(() => {
                     setGameState('success');
                     onComplete(5);
-                }, 300);
+                }, 400); // 초록불 보여줄 시간
             } else {
                 setCurrentStep((prev) => prev + 1);
             }

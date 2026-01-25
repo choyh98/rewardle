@@ -85,7 +85,16 @@ const ShootingWordle: React.FC<ShootingWordleProps> = ({ brand, onComplete, onBa
             let availablePool = charPool.filter(c => c !== targetChar);
             const shuffledPool = [...availablePool].sort(() => Math.random() - 0.5);
             const rowElements = [targetChar, ...shuffledPool.slice(0, 11)];
-            const characters = rowElements.sort(() => Math.random() - 0.5);
+            
+            // 정답 글자가 처음에 나오지 않도록 배치
+            // 중간~뒤쪽 위치에 정답 글자 배치 (인덱스 4~9 사이)
+            const targetPosition = 4 + Math.floor(Math.random() * 6); // 4~9 랜덤 위치
+            const otherChars = shuffledPool.slice(0, 11);
+            const characters = [
+                ...otherChars.slice(0, targetPosition),
+                targetChar,
+                ...otherChars.slice(targetPosition)
+            ];
 
             return {
                 characters,
@@ -164,7 +173,7 @@ const ShootingWordle: React.FC<ShootingWordleProps> = ({ brand, onComplete, onBa
                 ))}
             </div>
 
-            <div className="flex-1 relative overflow-hidden flex flex-col items-center pt-2 pb-24 px-0">
+            <div className="flex-1 relative overflow-hidden flex flex-col items-center pt-2 pb-32 px-0">
                 <AnimatePresence mode="popLayout">
                     {gameState !== 'success' && targetChars.map((targetChar, idx) => (
                         idx >= currentStep && (
@@ -220,7 +229,7 @@ const ShootingWordle: React.FC<ShootingWordleProps> = ({ brand, onComplete, onBa
             </div>
 
             <div
-                className="absolute bottom-12 z-20"
+                className="absolute bottom-16 z-20"
                 style={{ left: `${fixedCannonX}%`, transform: 'translateX(-50%)' }}
             >
                 <div className="relative flex flex-col items-center">
@@ -260,7 +269,6 @@ const ShootingWordle: React.FC<ShootingWordleProps> = ({ brand, onComplete, onBa
 
                     <button
                         onClick={() => {
-                            onDeductPlay();
                             startGame();
                         }}
                         className="bg-[#ff6b6b] h-[70px] rounded-[24px] w-full hover:bg-[#ff5252] active:scale-95 transition-all shadow-xl"

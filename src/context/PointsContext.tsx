@@ -62,28 +62,27 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const checkAndResetGames = () => {
             const today = new Date().toDateString();
             
-            // 날짜가 바뀌면 자동 초기화
+            // 날짜가 바뀌면 게임 횟수와 기록만 초기화 (포인트는 유지)
             if (dailyGames.date !== today) {
                 const newDailyGames = { date: today, count: 0 };
                 setDailyGames(newDailyGames);
                 setGameHistory([]);
                 setNextResetTime(null);
                 
-                // localStorage 업데이트
+                // localStorage 업데이트 (포인트는 건드리지 않음)
                 if (user?.isGuest) {
                     localStorage.setItem('rewardle_daily_games', JSON.stringify(newDailyGames));
                     localStorage.setItem('rewardle_game_history', JSON.stringify([]));
                     localStorage.removeItem('rewardle_reset_time');
+                    // 포인트와 히스토리는 유지
                 }
             }
             
-            // resetTime이 있고 게임 횟수가 0인 경우 타이머 설정
-            if (dailyGames.resetTime && dailyGames.count === 0) {
+            // resetTime이 있고 24시간이 지났으면 초기화
+            if (dailyGames.resetTime) {
                 const resetTime = new Date(dailyGames.resetTime);
-                if (resetTime > new Date()) {
-                    setNextResetTime(resetTime);
-                } else {
-                    // 타이머가 만료되었으면 초기화
+                if (resetTime <= new Date()) {
+                    // 24시간이 지났으므로 게임 횟수만 초기화
                     const newDailyGames = { date: today, count: 0 };
                     setDailyGames(newDailyGames);
                     setNextResetTime(null);
@@ -92,6 +91,9 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                         localStorage.setItem('rewardle_daily_games', JSON.stringify(newDailyGames));
                         localStorage.removeItem('rewardle_reset_time');
                     }
+                } else {
+                    // 아직 24시간이 안 지났으면 타이머 유지
+                    setNextResetTime(resetTime);
                 }
             }
         };

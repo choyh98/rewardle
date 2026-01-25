@@ -59,9 +59,18 @@ const LandingPage: React.FC = () => {
     }, [nextResetTime]);
 
     const handleLogout = async () => {
-        if (confirm('로그아웃 하시겠습니까?')) {
-            await supabase.auth.signOut();
-            navigate('/login');
+        if (confirm('로그아웃 하시겠습니까?\n(게스트 모드로 전환되며, 포인트는 로컬에 저장됩니다)')) {
+            try {
+                // Supabase 로그아웃
+                await supabase.auth.signOut();
+                
+                // 페이지 새로고침하여 게스트 모드로 전환
+                // AuthContext가 자동으로 게스트 사용자로 전환합니다
+                window.location.href = '/home';
+            } catch (error) {
+                console.error('로그아웃 실패:', error);
+                alert('로그아웃에 실패했습니다. 다시 시도해주세요.');
+            }
         }
     };
 

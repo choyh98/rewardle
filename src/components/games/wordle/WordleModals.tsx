@@ -18,7 +18,7 @@ export const WordleHelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) =
                     </div>
                     <div className="flex-1">
                         <p className="font-bold text-[18px] text-[#121212] mb-[8px]">
-                            숨겨진 5글자 가게명을 맞춰보세요!
+                            숨겨진 가게명을 맞춰보세요!
                         </p>
                         <p className="font-normal text-[14px] text-[#737373]">
                             6번의 기회 안에 정답을 맞추면 5포인트를 받을 수 있어요.
@@ -72,7 +72,7 @@ export const WordleHelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) =
                             키보드에서 글자를 선택하세요!
                         </p>
                         <p className="font-normal text-[14px] text-[#737373]">
-                            같은 글자를 여러 번 클릭할 수 있어요. 5글자를 모두 입력한 후 확인 버튼을 눌러주세요.
+                            같은 글자를 여러 번 클릭할 수 있어요. 글자를 모두 입력한 후 확인 버튼을 눌러주세요.
                         </p>
                     </div>
                 </div>

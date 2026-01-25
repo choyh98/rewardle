@@ -21,6 +21,7 @@ const GamePage: React.FC = () => {
     // 브랜드 데이터 로드 및 일일 제한 확인
     useEffect(() => {
         const loadBrandAndCheckLimit = async () => {
+            // 게임 시작 전 체크만 수행
             if (!canPlayGame()) {
                 alert('오늘의 게임 참여 횟수를 모두 사용했습니다.\n내일 다시 도전해주세요!');
                 navigate('/home');
@@ -39,7 +40,8 @@ const GamePage: React.FC = () => {
         };
 
         loadBrandAndCheckLimit();
-    }, [brandId, canPlayGame, navigate]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [brandId, navigate]); // canPlayGame 의존성 제거
 
     // 게임 횟수 차감 함수
     const handleDeductPlay = () => {
@@ -64,10 +66,6 @@ const GamePage: React.FC = () => {
     const handleBack = () => {
         navigate('/home');
     };
-
-    if (!canPlayGame()) {
-        return null;
-    }
 
     if (isLoading || !brand) {
         return (

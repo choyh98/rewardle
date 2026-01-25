@@ -35,22 +35,37 @@ const AttendancePage: React.FC = () => {
                     const savedStreak = localStorage.getItem('rewardle_attendance_streak');
                     const savedMonthly = localStorage.getItem('rewardle_monthly_attendance');
                     
-                    setChecked(lastCheck === today);
+                    // 오늘 출석했는지 정확히 체크
+                    const isCheckedToday = lastCheck === today;
+                    setChecked(isCheckedToday);
                     setAttendanceStreak(savedStreak ? parseInt(savedStreak) : 0);
                     setLastCheckDate(lastCheck || '');
                     
-                    // 이번 달 출석 기록 로드
+                    // 이번 달 출석 기록 로드 및 정리
                     if (savedMonthly) {
-                        const monthlyData = JSON.parse(savedMonthly);
-                        const currentMonth = new Date().getMonth();
-                        const currentYear = new Date().getFullYear();
-                        
-                        // 이번 달 데이터만 필터링
-                        const thisMonthAttendance = monthlyData.filter((dateStr: string) => {
-                            const date = new Date(dateStr);
-                            return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
-                        });
-                        setMonthlyAttendance(thisMonthAttendance);
+                        try {
+                            const monthlyData = JSON.parse(savedMonthly);
+                            const currentMonth = new Date().getMonth();
+                            const currentYear = new Date().getFullYear();
+                            
+                            // 이번 달 데이터만 필터링
+                            const thisMonthAttendance = monthlyData.filter((dateStr: string) => {
+                                try {
+                                    const date = new Date(dateStr);
+                                    return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+                                } catch {
+                                    return false;
+                                }
+                            });
+                            setMonthlyAttendance(thisMonthAttendance);
+                            
+                            // 이번 달 데이터만 다시 저장 (오래된 데이터 정리)
+                            localStorage.setItem('rewardle_monthly_attendance', JSON.stringify(thisMonthAttendance));
+                        } catch (error) {
+                            console.error('Failed to parse monthly attendance:', error);
+                            setMonthlyAttendance([]);
+                            localStorage.removeItem('rewardle_monthly_attendance');
+                        }
                     }
                 } else {
                     // 로그인 사용자: Supabase에서 로드
