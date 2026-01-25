@@ -25,9 +25,9 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const [isLoading, setIsLoading] = useState(true);
     const [points, setPoints] = useState<number>(0);
     const [history, setHistory] = useState<PointHistory[]>([]);
-    const [dailyGames, setDailyGames] = useState<{ date: string; count: number; resetTime?: string }>({ 
-        date: new Date().toDateString(), 
-        count: 0 
+    const [dailyGames, setDailyGames] = useState<{ date: string; count: number; resetTime?: string }>({
+        date: new Date().toDateString(),
+        count: 0
     });
     const [gameHistory, setGameHistory] = useState<GameHistory[]>([]);
     const [nextResetTime, setNextResetTime] = useState<Date | null>(null);
@@ -69,14 +69,14 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     useEffect(() => {
         const checkAndResetGames = () => {
             const today = new Date().toDateString();
-            
+
             // 날짜가 바뀌면 게임 횟수와 기록만 초기화 (포인트는 유지)
             if (dailyGames.date !== today) {
                 const newDailyGames = { date: today, count: 0 };
                 setDailyGames(newDailyGames);
                 setGameHistory([]);
                 setNextResetTime(null);
-                
+
                 // localStorage 업데이트 (포인트는 건드리지 않음)
                 if (user?.isGuest) {
                     localStorage.setItem('rewardle_daily_games', JSON.stringify(newDailyGames));
@@ -85,7 +85,7 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     // 포인트와 히스토리는 유지
                 }
             }
-            
+
             // resetTime이 있고 24시간이 지났으면 초기화
             if (dailyGames.resetTime) {
                 const resetTime = new Date(dailyGames.resetTime);
@@ -94,7 +94,7 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     const newDailyGames = { date: today, count: 0 };
                     setDailyGames(newDailyGames);
                     setNextResetTime(null);
-                    
+
                     if (user?.isGuest) {
                         localStorage.setItem('rewardle_daily_games', JSON.stringify(newDailyGames));
                         localStorage.removeItem('rewardle_reset_time');
@@ -111,7 +111,7 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
         // 1분마다 체크
         const interval = setInterval(checkAndResetGames, 60000);
-        
+
         return () => clearInterval(interval);
     }, [dailyGames, user]);
 
@@ -199,7 +199,9 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         } else {
             // 로그인 사용자: Supabase에 저장
             try {
-                await pointsService.addPoints(user.id, amount, reason, points);
+                const updatedPoints = await pointsService.addPoints(user.id, amount, reason);
+                // DB에서 반환된 최신 포인트로 동기화 (레이스 컨디션 방지)
+                setPoints(updatedPoints);
             } catch (error) {
                 console.error('Failed to save points to Supabase:', error);
             }
@@ -212,10 +214,10 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
         const today = new Date().toDateString();
         const newCount = dailyGames.date !== today ? 1 : dailyGames.count + 1;
-        
+
         // 로컬 상태 업데이트
         setGameHistory(prev => [...prev, { date: today, gameType }]);
-        
+
         // 게임 횟수가 10이 되면 24시간 후 초기화 시간 설정
         let resetTime: string | undefined = undefined;
         if (newCount === DAILY_GAME_LIMIT) {
@@ -224,11 +226,11 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             resetTime = reset.toISOString();
             setNextResetTime(reset);
         }
-        
-        const newDailyGames = dailyGames.date !== today 
+
+        const newDailyGames = dailyGames.date !== today
             ? { date: today, count: 1, resetTime }
             : { ...dailyGames, count: newCount, resetTime: resetTime || dailyGames.resetTime };
-        
+
         setDailyGames(newDailyGames);
 
         if (user.isGuest) {
@@ -260,11 +262,11 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const dailyGamesRemaining = Math.max(0, DAILY_GAME_LIMIT - (dailyGames.date === new Date().toDateString() ? dailyGames.count : 0));
 
     return (
-        <PointsContext.Provider value={{ 
-            points, 
-            addPoints, 
-            history, 
-            totalGamesPlayed, 
+        <PointsContext.Provider value={{
+            points,
+            addPoints,
+            history,
+            totalGamesPlayed,
             recordGameCompletion,
             canPlayGame,
             dailyGamesRemaining,

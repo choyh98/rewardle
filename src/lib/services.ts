@@ -45,23 +45,29 @@ export const pointsService = {
     },
 
     // 포인트 추가
-    async addPoints(userId: string, amount: number, reason: string, currentPoints: number): Promise<void> {
+    async addPoints(userId: string, amount: number, reason: string): Promise<number> {
+        // 1. 현재 포인트 조회 (DB에서 직접 가져옴)
+        const currentPoints = await this.getUserPoints(userId);
         const newPoints = currentPoints + amount;
 
-        // 1. 포인트 내역 추가
+        // 2. 포인트 내역 추가
         await supabase.from('point_history').insert({
             user_id: userId,
             amount,
             reason
         });
 
-        // 2. 총 포인트 업데이트
-        await supabase
+        // 3. 총 포인트 업데이트
+        const { error } = await supabase
             .from('user_points')
             .upsert({ 
                 user_id: userId, 
                 points: newPoints 
             });
+
+        if (error) throw error;
+        
+        return newPoints;
     }
 };
 
