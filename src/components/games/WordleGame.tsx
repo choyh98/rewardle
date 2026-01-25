@@ -36,6 +36,25 @@ const WordleGame: React.FC<WordleGameProps> = ({ brand, onComplete, onBack, onDe
     const MAX_ATTEMPTS = 6; // 최대 시도 횟수
     const wordLength = brand.wordleAnswer.length; // 매장명 길이
 
+    // 글자 수에 따라 셀 크기 동적 조정
+    const getCellSize = () => {
+        if (wordLength <= 4) return 'size-[62px]';
+        if (wordLength === 5) return 'size-[54px]';
+        if (wordLength === 6) return 'size-[48px]';
+        if (wordLength === 7) return 'size-[42px]';
+        return 'size-[38px]'; // 8글자 이상
+    };
+
+    const getCellTextSize = () => {
+        if (wordLength <= 5) return 'text-[24px]';
+        if (wordLength === 6) return 'text-[22px]';
+        if (wordLength === 7) return 'text-[20px]';
+        return 'text-[18px]'; // 8글자 이상
+    };
+
+    const cellSize = getCellSize();
+    const cellTextSize = getCellTextSize();
+
     const [guesses, setGuesses] = useState<Cell[][]>(
         Array(MAX_ATTEMPTS).fill(null).map(() =>
             Array(wordLength).fill(null).map(() => ({ char: '', state: 'empty' }))
@@ -274,10 +293,10 @@ const WordleGame: React.FC<WordleGameProps> = ({ brand, onComplete, onBack, onDe
                                 return (
                                     <div
                                         key={cIdx}
-                                        className={`${bgColor} relative rounded-[4px] size-[54px] transition-all duration-300 border-2 ${borderColor} flex items-center justify-center`}
+                                        className={`${bgColor} ${cellSize} relative rounded-[4px] transition-all duration-300 border-2 ${borderColor} flex items-center justify-center`}
                                     >
                                         {cell.char && (
-                                            <p className={`font-semibold text-[24px] ${textColor}`}>{cell.char}</p>
+                                            <p className={`font-semibold ${cellTextSize} ${textColor}`}>{cell.char}</p>
                                         )}
                                     </div>
                                 );

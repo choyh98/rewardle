@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { lazy, Suspense } from 'react';
 import { AuthProvider } from './context/AuthContext';
 import { PointsProvider } from './context/PointsContext';
+import { MigrationToast } from './components/common/MigrationToast';
 
 // 즉시 로드되어야 하는 페이지 (초기 화면)
 import LoginPage from './pages/LoginPage';
@@ -27,6 +28,7 @@ function App() {
       <PointsProvider>
         <Router>
           <div className="max-w-[500px] mx-auto min-h-screen bg-white shadow-xl relative overflow-hidden">
+            <MigrationToast />
             <Suspense fallback={<LoadingFallback />}>
             <Routes>
               <Route path="/" element={<LoginPage />} />

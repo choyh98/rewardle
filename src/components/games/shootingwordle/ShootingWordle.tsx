@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { ArrowLeft, Target, HelpCircle } from 'lucide-react';
+import { ArrowLeft, Target } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useShootingWordle } from '../../../hooks/useShootingWordle';
 import { ShootingWordleHelpModal } from './modals/ShootingWordleHelpModal';
@@ -73,7 +73,7 @@ const ShootingWordle: React.FC<ShootingWordleProps> = ({ brand, onComplete, onBa
         duration: 60
     });
 
-    const [showHelp, setShowHelp] = useState(false);
+    const [showHelp, setShowHelp] = useState(true); // 시작 시 자동으로 help 표시
     const [showMission, setShowMission] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -151,7 +151,10 @@ const ShootingWordle: React.FC<ShootingWordleProps> = ({ brand, onComplete, onBa
                     onClick={() => setShowHelp(true)}
                     className="p-2 hover:bg-white/20 rounded-full transition-colors"
                 >
-                    <HelpCircle size={28} className="text-gray-700" />
+                    <svg className="size-[48px]" viewBox="0 0 48 48" fill="none">
+                        <circle cx="24" cy="24" r="20" fill="#666" opacity="0.9" />
+                        <path d="M24 34c-.828 0-1.5-.672-1.5-1.5s.672-1.5 1.5-1.5 1.5.672 1.5 1.5-.672 1.5-1.5 1.5zm1.5-6.5v-1c0-1.375.5-2.625 1.5-3.625 1-1 1.5-2.25 1.5-3.875 0-2.625-2.125-4.75-4.75-4.75S18.5 16.375 18.5 19h3c0-1.125.875-2 2-2s2 .875 2 2c0 .875-.375 1.625-1 2.25-1.25 1.25-2 2.875-2 4.75v1h3z" fill="white" />
+                    </svg>
                 </button>
             </header>
 
@@ -252,7 +255,10 @@ const ShootingWordle: React.FC<ShootingWordleProps> = ({ brand, onComplete, onBa
                             }} 
                             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                         >
-                            <HelpCircle size={32} className="text-gray-700" />
+                            <svg className="size-[48px]" viewBox="0 0 48 48" fill="none">
+                                <circle cx="24" cy="24" r="20" fill="#666" opacity="0.9" />
+                                <path d="M24 34c-.828 0-1.5-.672-1.5-1.5s.672-1.5 1.5-1.5 1.5.672 1.5 1.5-.672 1.5-1.5 1.5zm1.5-6.5v-1c0-1.375.5-2.625 1.5-3.625 1-1 1.5-2.25 1.5-3.875 0-2.625-2.125-4.75-4.75-4.75S18.5 16.375 18.5 19h3c0-1.125.875-2 2-2s2 .875 2 2c0 .875-.375 1.625-1 2.25-1.25 1.25-2 2.875-2 4.75v1h3z" fill="white" />
+                            </svg>
                         </button>
                     </div>
 
@@ -268,6 +274,7 @@ const ShootingWordle: React.FC<ShootingWordleProps> = ({ brand, onComplete, onBa
 
                     <button
                         onClick={() => {
+                            setShowHelp(false); // help 닫기
                             startGame();
                         }}
                         className="bg-[#ff6b6b] h-[70px] rounded-[24px] w-full hover:bg-[#ff5252] active:scale-95 transition-all shadow-xl"

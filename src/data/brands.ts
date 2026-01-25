@@ -137,13 +137,27 @@ export const markBrandAsCompleted = (brandId: string) => {
     }
 };
 
-export const getDefaultBrand = async (): Promise<Brand | null> => {
+export const getDefaultBrand = async (difficulty?: 'easy' | 'normal' | 'hard'): Promise<Brand | null> => {
     const brands = await fetchBrands();
     if (brands.length === 0) return null;
     
     // 오늘 완료한 퀴즈 제외
     const completedIds = getTodayCompletedBrands();
-    const availableBrands = brands.filter(brand => !completedIds.includes(brand.id));
+    let availableBrands = brands.filter(brand => !completedIds.includes(brand.id));
+    
+    // 난이도에 따라 필터링
+    if (difficulty) {
+        availableBrands = availableBrands.filter(brand => {
+            const wordLength = brand.wordleAnswer.length;
+            if (difficulty === 'easy') {
+                return wordLength >= 3 && wordLength <= 4;
+            } else if (difficulty === 'normal') {
+                return wordLength >= 5 && wordLength <= 6;
+            } else { // hard
+                return wordLength >= 7;
+            }
+        });
+    }
     
     // 사용 가능한 퀴즈가 없으면 null 반환
     if (availableBrands.length === 0) {

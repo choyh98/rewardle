@@ -635,13 +635,16 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
 // Main Component
 const AppleGame: React.FC<AppleGameProps> = ({ brand, onComplete, onBack, onDeductPlay }) => {
     const [gameState, setGameState] = useState<'start' | 'playing'>('start');
-    const [showHelp, setShowHelp] = useState(false);
+    const [showHelp, setShowHelp] = useState(true); // 시작 시 자동으로 help 표시
 
     return (
         <>
             {gameState === 'start' && (
                 <StartScreen
-                    onStart={() => setGameState('playing')}
+                    onStart={() => {
+                        setShowHelp(false);
+                        setGameState('playing');
+                    }}
                     onShowHelp={() => setShowHelp(true)}
                     onBack={onBack}
                 />

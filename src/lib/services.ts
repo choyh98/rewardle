@@ -88,6 +88,62 @@ export const pointsService = {
         
         console.log('포인트 저장 성공:', newPoints);
         return newPoints;
+    },
+
+    // 게스트 포인트를 로그인 계정으로 마이그레이션
+    async migrateGuestPoints(newUserId: string): Promise<{ migratedPoints: number; success: boolean }> {
+        try {
+            // 1. localStorage에서 게스트 포인트 읽기
+            const guestPoints = localStorage.getItem('rewardle_points');
+            const guestHistory = localStorage.getItem('rewardle_history');
+
+            if (!guestPoints || parseInt(guestPoints) === 0) {
+                console.log('마이그레이션할 게스트 포인트가 없습니다.');
+                return { migratedPoints: 0, success: true };
+            }
+
+            const pointsToMigrate = parseInt(guestPoints);
+            console.log('게스트 포인트 마이그레이션 시작:', { pointsToMigrate, newUserId });
+
+            // 2. 로그인 계정에 포인트 추가
+            const newTotalPoints = await this.addPoints(
+                newUserId,
+                pointsToMigrate,
+                '게스트 모드에서 획득한 포인트 이전'
+            );
+
+            // 3. 게스트 히스토리도 마이그레이션 (선택사항)
+            if (guestHistory) {
+                try {
+                    const historyItems = JSON.parse(guestHistory);
+                    // 최근 10개만 마이그레이션
+                    const itemsToMigrate = historyItems.slice(0, 10);
+                    
+                    for (const item of itemsToMigrate) {
+                        await supabase.from('point_history').insert({
+                            user_id: newUserId,
+                            amount: item.amount,
+                            reason: `[게스트] ${item.reason}`,
+                            created_at: item.date
+                        });
+                    }
+                } catch (historyError) {
+                    console.error('히스토리 마이그레이션 실패 (무시):', historyError);
+                }
+            }
+
+            // 4. localStorage 정리
+            localStorage.removeItem('rewardle_points');
+            localStorage.removeItem('rewardle_history');
+            localStorage.removeItem('rewardle_guest_id');
+
+            console.log('마이그레이션 완료:', { migratedPoints: pointsToMigrate, newTotalPoints });
+            return { migratedPoints: pointsToMigrate, success: true };
+
+        } catch (error) {
+            console.error('포인트 마이그레이션 실패:', error);
+            return { migratedPoints: 0, success: false };
+        }
     }
 };
 

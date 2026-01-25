@@ -1,16 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ChevronRight, Award, LogOut, Target } from 'lucide-react';
+import { ChevronRight, Award, LogOut, Target, Play } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { usePoints } from '../context/PointsContext';
 import { getDefaultBrand, type Brand } from '../data/brands';
 import { supabase } from '../lib/supabase';
+import { OnboardingTutorial } from '../components/common';
 import appleIcon from '../assets/apple.png';
 import wordleIcon from '../assets/wordle.png';
 import checkIcon from '../assets/check.png';
 import pointIcon from '../assets/point.png';
 import backgroundImage from '../assets/background.png';
+
+type Difficulty = 'easy' | 'normal' | 'hard';
 
 const LandingPage: React.FC = () => {
     const { user } = useAuth();
@@ -18,14 +21,38 @@ const LandingPage: React.FC = () => {
     const [defaultBrand, setDefaultBrand] = useState<Brand | null>(null);
     const [showGameHistoryModal, setShowGameHistoryModal] = useState(false);
     const [timeRemaining, setTimeRemaining] = useState<string>('');
+    const [showOnboarding, setShowOnboarding] = useState(false);
+    const [difficulty, setDifficulty] = useState<Difficulty>(() => {
+        const saved = localStorage.getItem('rewardle_difficulty');
+        return (saved as Difficulty) || 'normal';
+    });
+
+    // 첫 방문 체크
+    useEffect(() => {
+        const hasSeenOnboarding = localStorage.getItem('rewardle_onboarding_completed');
+        if (!hasSeenOnboarding) {
+            setShowOnboarding(true);
+        }
+    }, []);
+
+    const handleOnboardingComplete = () => {
+        localStorage.setItem('rewardle_onboarding_completed', 'true');
+        setShowOnboarding(false);
+    };
 
     useEffect(() => {
         const loadBrand = async () => {
-            const brand = await getDefaultBrand();
+            const brand = await getDefaultBrand(difficulty);
             setDefaultBrand(brand);
         };
         loadBrand();
-    }, []);
+    }, [difficulty]);
+
+    // 난이도 변경 핸들러
+    const handleDifficultyChange = (newDifficulty: Difficulty) => {
+        setDifficulty(newDifficulty);
+        localStorage.setItem('rewardle_difficulty', newDifficulty);
+    };
 
     // 타이머 업데이트
     useEffect(() => {
@@ -75,6 +102,9 @@ const LandingPage: React.FC = () => {
 
     return (
         <div className="bg-[#fafafa] flex flex-col items-center min-h-screen w-full pb-10">
+            {/* 온보딩 튜토리얼 */}
+            {showOnboarding && <OnboardingTutorial onComplete={handleOnboardingComplete} />}
+
             {/* Hero Section */}
             <div className="relative w-full h-[320px] overflow-hidden bg-gradient-to-br from-primary to-[#bb003c]">
                 {/* Background Image */}
@@ -97,21 +127,56 @@ const LandingPage: React.FC = () => {
                             매일 플레이 하고<br />
                             포인트 받기
                         </h2>
-                        <p className="mt-4 text-white/90 text-lg font-bold drop-shadow-sm">
-                            간단한 미션 완료하고 리워드를 받아보세요
-                        </p>
-                        {/* 일일 게임 횟수 표시 - 클릭 가능 */}
-                        <button
-                            onClick={() => setShowGameHistoryModal(true)}
-                            className="mt-3 bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 inline-block hover:bg-white/30 transition-colors active:scale-95"
-                        >
-                            <p className="text-white/95 text-sm font-bold">
-                                오늘 남은 게임: {dailyGamesRemaining}/10
-                                {timeRemaining && dailyGamesRemaining === 0 && (
-                                    <span className="ml-2 text-yellow-200">({timeRemaining} 후 초기화)</span>
-                                )}
-                            </p>
-                        </button>
+  
+                        {/* 일일 게임 횟수 및 난이도 선택 */}
+                        <div className="mt-3 flex items-center gap-2 flex-wrap">
+                            {/* 게임 횟수 표시 */}
+                            <button
+                                onClick={() => setShowGameHistoryModal(true)}
+                                className="bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 hover:bg-white/30 transition-colors active:scale-95 flex-shrink-0"
+                            >
+                                <p className="text-white/95 text-sm font-bold whitespace-nowrap">
+                                    오늘 남은 게임: {dailyGamesRemaining}/10
+                                    {timeRemaining && dailyGamesRemaining === 0 && (
+                                        <span className="ml-2 text-yellow-200">({timeRemaining} 후 초기화)</span>
+                                    )}
+                                </p>
+                            </button>
+
+                            {/* 난이도 토글 버튼 */}
+                            <div className="bg-white/20 backdrop-blur-sm rounded-full p-1 flex items-center gap-1 flex-shrink-0">
+                                <button
+                                    onClick={() => handleDifficultyChange('easy')}
+                                    className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap ${
+                                        difficulty === 'easy'
+                                            ? 'bg-white text-primary shadow-sm'
+                                            : 'text-white/80 hover:text-white'
+                                    }`}
+                                >
+                                    쉬움
+                                </button>
+                                <button
+                                    onClick={() => handleDifficultyChange('normal')}
+                                    className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap ${
+                                        difficulty === 'normal'
+                                            ? 'bg-white text-primary shadow-sm'
+                                            : 'text-white/80 hover:text-white'
+                                    }`}
+                                >
+                                    보통
+                                </button>
+                                <button
+                                    onClick={() => handleDifficultyChange('hard')}
+                                    className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap ${
+                                        difficulty === 'hard'
+                                            ? 'bg-white text-primary shadow-sm'
+                                            : 'text-white/80 hover:text-white'
+                                    }`}
+                                >
+                                    어려움
+                                </button>
+                            </div>
+                        </div>
                     </motion.div>
                 </div>
 
@@ -141,7 +206,7 @@ const LandingPage: React.FC = () => {
                 <div className="space-y-4">
                     <Link 
                         to={defaultBrand ? `/game/wordle?brand=${defaultBrand.id}` : '#'} 
-                        className="group bg-white rounded-2xl p-6 flex items-center gap-4 shadow-sm hover:shadow-md transition-all active:scale-[0.98] touch-manipulation"
+                        className="group bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all active:scale-[0.98] touch-manipulation border-2 border-transparent hover:border-primary/20 flex flex-col min-h-[180px]"
                         onClick={(e) => {
                             if (!defaultBrand) {
                                 e.preventDefault();
@@ -149,17 +214,22 @@ const LandingPage: React.FC = () => {
                             }
                         }}
                     >
-                        <img src={wordleIcon} alt="워들 게임" loading="lazy" className="h-[72px] w-auto object-contain group-hover:scale-105 transition-transform pointer-events-none" />
-                        <div className="flex-1 min-w-0">
-                            <h3 className="text-xl font-bold text-gray-800 mb-1 truncate">워들 게임</h3>
-                            <p className="text-gray-500 text-sm line-clamp-1">가게명을 맞추고 포인트 받기</p>
+                        <div className="flex items-center gap-4 mb-4">
+                            <img src={wordleIcon} alt="워들 게임" loading="lazy" className="h-[72px] w-auto object-contain group-hover:scale-105 transition-transform pointer-events-none" />
+                            <div className="flex-1 min-w-0">
+                                <h3 className="text-xl font-bold text-gray-800 mb-1 truncate">워들 게임</h3>
+                                <p className="text-gray-500 text-sm line-clamp-1">가게명을 맞추고 포인트 받기</p>
+                            </div>
                         </div>
-                        <ChevronRight className="text-primary size-6 flex-shrink-0" />
+                        <div className="w-full flex items-center justify-center gap-2 bg-primary text-white font-bold py-3 rounded-xl group-hover:bg-primary-dark transition-colors">
+                            <Play className="size-5 fill-current" />
+                            <span>지금 플레이하기</span>
+                        </div>
                     </Link>
 
                     <Link 
                         to={defaultBrand ? `/game/shooting?brand=${defaultBrand.id}` : '#'} 
-                        className="group bg-white rounded-2xl p-6 flex items-center gap-4 shadow-sm hover:shadow-md transition-all active:scale-[0.98] touch-manipulation"
+                        className="group bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all active:scale-[0.98] touch-manipulation border-2 border-transparent hover:border-primary/20 flex flex-col min-h-[180px]"
                         onClick={(e) => {
                             if (!defaultBrand) {
                                 e.preventDefault();
@@ -167,19 +237,24 @@ const LandingPage: React.FC = () => {
                             }
                         }}
                     >
-                        <div className="h-[48px] w-[48px] flex items-center justify-center">
-                            <Target className="text-[#ff6b6b] size-16 group-hover:scale-105 transition-transform" />
+                        <div className="flex items-center gap-4 mb-4">
+                            <div className="h-[48px] w-[48px] flex items-center justify-center">
+                                <Target className="text-[#ff6b6b] size-16 group-hover:scale-105 transition-transform" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <h3 className="text-xl font-bold text-gray-800 mb-1 truncate">슈팅워들 게임</h3>
+                                <p className="text-gray-500 text-sm line-clamp-1">글자를 명중시켜 포인트 받기</p>
+                            </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                            <h3 className="text-xl font-bold text-gray-800 mb-1 truncate">슈팅워들 게임</h3>
-                            <p className="text-gray-500 text-sm line-clamp-1">글자를 명중시켜 포인트 받기</p>
+                        <div className="w-full flex items-center justify-center gap-2 bg-primary text-white font-bold py-3 rounded-xl group-hover:bg-primary-dark transition-colors">
+                            <Play className="size-5 fill-current" />
+                            <span>지금 플레이하기</span>
                         </div>
-                        <ChevronRight className="text-primary size-6 flex-shrink-0" />
                     </Link>
 
                     <Link 
                         to={defaultBrand ? `/game/apple?brand=${defaultBrand.id}` : '#'} 
-                        className="group bg-white rounded-2xl p-6 flex items-center gap-4 shadow-sm hover:shadow-md transition-all active:scale-[0.98] touch-manipulation"
+                        className="group bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all active:scale-[0.98] touch-manipulation border-2 border-transparent hover:border-primary/20 flex flex-col min-h-[180px]"
                         onClick={(e) => {
                             if (!defaultBrand) {
                                 e.preventDefault();
@@ -187,12 +262,17 @@ const LandingPage: React.FC = () => {
                             }
                         }}
                     >
-                        <img src={appleIcon} alt="사과 게임" loading="lazy" className="h-[72px] w-auto object-contain group-hover:scale-105 transition-transform pointer-events-none" />
-                        <div className="flex-1 min-w-0">
-                            <h3 className="text-xl font-bold text-gray-800 mb-1 truncate">사과 게임</h3>
-                            <p className="text-gray-500 text-sm line-clamp-1">숫자10 만들고 글자 모으기</p>
+                        <div className="flex items-center gap-4 mb-4">
+                            <img src={appleIcon} alt="사과 게임" loading="lazy" className="h-[72px] w-auto object-contain group-hover:scale-105 transition-transform pointer-events-none" />
+                            <div className="flex-1 min-w-0">
+                                <h3 className="text-xl font-bold text-gray-800 mb-1 truncate">사과 게임</h3>
+                                <p className="text-gray-500 text-sm line-clamp-1">숫자10 만들고 글자 모으기</p>
+                            </div>
                         </div>
-                        <ChevronRight className="text-primary size-6 flex-shrink-0" />
+                        <div className="w-full flex items-center justify-center gap-2 bg-primary text-white font-bold py-3 rounded-xl group-hover:bg-primary-dark transition-colors">
+                            <Play className="size-5 fill-current" />
+                            <span>지금 플레이하기</span>
+                        </div>
                     </Link>
                 </div>
 
@@ -212,7 +292,7 @@ const LandingPage: React.FC = () => {
                 {/* Admin/Merchant Prompt */}
                 <div className="pt-2 space-y-3">
                     <Link to="/admin" className="block w-full bg-gray-50 rounded-2xl p-5 text-center text-gray-500 font-semibold hover:bg-gray-100 transition-colors">
-                        자영업자이신가요? 퀴즈 등록하러 가기
+                        자영업자이신가요? <br/>퀴즈 등록하러 가기
                     </Link>
                     
                     {user && user.isGuest && (
