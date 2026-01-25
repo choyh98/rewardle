@@ -45,7 +45,9 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     await loadFromLocalStorage();
                 } else {
                     try {
+                        console.log('로그인 사용자 데이터 로드 시작:', user.id);
                         await loadFromSupabase();
+                        console.log('Supabase에서 포인트 로드 완료');
                     } catch (supabaseError) {
                         console.error('Supabase load failed, falling back to localStorage:', supabaseError);
                         // Supabase 실패 시 localStorage로 fallback (포인트 유지)
@@ -162,6 +164,7 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         try {
             // 포인트 가져오기
             const userPoints = await pointsService.getUserPoints(user.id);
+            console.log('DB에서 로드한 포인트:', userPoints);
             setPoints(userPoints);
 
             // 포인트 내역 가져오기
@@ -183,27 +186,41 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const addPoints = async (amount: number, reason: string) => {
         if (amount <= 0 || !user) return;
 
+        const previousPoints = points;
+        const previousHistory = history;
         const newPoints = points + amount;
-        setPoints(newPoints);
         const newHistoryItem = { date: new Date().toISOString(), reason, amount };
+
+        // 낙관적 업데이트: UI를 먼저 업데이트
+        setPoints(newPoints);
         setHistory(prev => [newHistoryItem, ...prev]);
 
         if (user.isGuest) {
             // 게스트: localStorage에 저장
             try {
                 localStorage.setItem('rewardle_points', newPoints.toString());
-                localStorage.setItem('rewardle_history', JSON.stringify([newHistoryItem, ...history]));
+                localStorage.setItem('rewardle_history', JSON.stringify([newHistoryItem, ...previousHistory]));
+                console.log('게스트 포인트 저장 완료:', newPoints);
             } catch (error) {
                 console.error('Failed to save to localStorage:', error);
+                // 저장 실패 시 롤백
+                setPoints(previousPoints);
+                setHistory(previousHistory);
             }
         } else {
             // 로그인 사용자: Supabase에 저장
             try {
+                console.log('Supabase에 포인트 저장 시작:', { previousPoints, amount, newPoints });
                 const updatedPoints = await pointsService.addPoints(user.id, amount, reason);
+                console.log('Supabase 저장 완료. 반환된 포인트:', updatedPoints);
                 // DB에서 반환된 최신 포인트로 동기화 (레이스 컨디션 방지)
                 setPoints(updatedPoints);
             } catch (error) {
                 console.error('Failed to save points to Supabase:', error);
+                // 저장 실패 시 롤백
+                setPoints(previousPoints);
+                setHistory(previousHistory);
+                alert('포인트 저장에 실패했습니다. 다시 시도해주세요.');
             }
         }
     };

@@ -52,6 +52,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
 
         initAuth();
+
+        // 인증 상태 변경 감지
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            if (session?.user) {
+                setUser({
+                    id: session.user.id,
+                    isGuest: false
+                });
+            } else {
+                // 로그아웃 시 게스트로 전환
+                let guestId = localStorage.getItem('rewardle_guest_id');
+                if (!guestId) {
+                    guestId = `guest_${Date.now()}`;
+                    localStorage.setItem('rewardle_guest_id', guestId);
+                }
+                setUser({
+                    id: guestId,
+                    isGuest: true
+                });
+            }
+        });
+
+        return () => {
+            subscription.unsubscribe();
+        };
     }, []);
 
     return (
