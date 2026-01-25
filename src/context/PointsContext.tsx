@@ -210,17 +210,23 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         } else {
             // 로그인 사용자: Supabase에 저장
             try {
-                console.log('Supabase에 포인트 저장 시작:', { previousPoints, amount, newPoints });
+                console.log('Supabase에 포인트 저장 시작:', { userId: user.id, previousPoints, amount, newPoints });
                 const updatedPoints = await pointsService.addPoints(user.id, amount, reason);
                 console.log('Supabase 저장 완료. 반환된 포인트:', updatedPoints);
                 // DB에서 반환된 최신 포인트로 동기화 (레이스 컨디션 방지)
                 setPoints(updatedPoints);
-            } catch (error) {
-                console.error('Failed to save points to Supabase:', error);
+            } catch (error: any) {
+                console.error('포인트 저장 실패 상세:', {
+                    error,
+                    message: error?.message,
+                    code: error?.code,
+                    details: error?.details,
+                    hint: error?.hint
+                });
                 // 저장 실패 시 롤백
                 setPoints(previousPoints);
                 setHistory(previousHistory);
-                alert('포인트 저장에 실패했습니다. 다시 시도해주세요.');
+                alert(`포인트 저장에 실패했습니다.\n에러: ${error?.message || '알 수 없는 오류'}\n\nSupabase SQL Editor에서 supabase_fix_rls_v2.sql을 실행해주세요.`);
             }
         }
     };

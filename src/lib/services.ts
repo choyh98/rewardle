@@ -12,18 +12,25 @@ export const pointsService = {
             .from('user_points')
             .select('points')
             .eq('user_id', userId)
-            .single();
+            .maybeSingle();
 
         if (error) {
-            if (error.code === 'PGRST116') {
-                // 레코드가 없으면 생성
-                await supabase.from('user_points').insert({ user_id: userId, points: 0 });
-                return 0;
-            }
             throw error;
         }
 
-        return data?.points || 0;
+        // 레코드가 없으면 생성
+        if (!data) {
+            const { error: insertError } = await supabase
+                .from('user_points')
+                .insert({ user_id: userId, points: 0 });
+            
+            if (insertError) {
+                console.error('Failed to create user_points:', insertError);
+            }
+            return 0;
+        }
+
+        return data.points || 0;
     },
 
     // 포인트 내역 가져오기
@@ -50,23 +57,36 @@ export const pointsService = {
         const currentPoints = await this.getUserPoints(userId);
         const newPoints = currentPoints + amount;
 
+        console.log('addPoints:', { userId, currentPoints, amount, newPoints });
+
         // 2. 포인트 내역 추가
-        await supabase.from('point_history').insert({
+        const { error: historyError } = await supabase.from('point_history').insert({
             user_id: userId,
             amount,
             reason
         });
 
-        // 3. 총 포인트 업데이트
-        const { error } = await supabase
+        if (historyError) {
+            console.error('Failed to insert point_history:', historyError);
+            throw historyError;
+        }
+
+        // 3. 총 포인트 업데이트 (upsert 사용)
+        const { error: updateError } = await supabase
             .from('user_points')
             .upsert({ 
                 user_id: userId, 
                 points: newPoints 
+            }, {
+                onConflict: 'user_id'
             });
 
-        if (error) throw error;
+        if (updateError) {
+            console.error('Failed to upsert user_points:', updateError);
+            throw updateError;
+        }
         
+        console.log('포인트 저장 성공:', newPoints);
         return newPoints;
     }
 };
