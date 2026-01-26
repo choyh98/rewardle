@@ -78,7 +78,6 @@ export const pointService = {
         try {
             // 1. localStorage에서 게스트 포인트 읽기
             const guestPoints = localStorage.getItem(STORAGE_KEYS.POINTS);
-            const guestHistory = localStorage.getItem(STORAGE_KEYS.HISTORY);
 
             if (!guestPoints || parseInt(guestPoints) === 0) {
                 console.log('마이그레이션할 게스트 포인트가 없습니다.');

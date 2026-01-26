@@ -94,7 +94,7 @@ export const attendanceService = {
     },
 
     // 레거시 함수 (하위 호환성 유지)
-    async recordAttendance(userId: string, streak: number): Promise<void> {
+    async recordAttendance(userId: string, _streak: number): Promise<void> {
         console.warn('recordAttendance는 deprecated되었습니다. checkIn을 사용하세요.');
         await this.checkIn(userId);
     }
