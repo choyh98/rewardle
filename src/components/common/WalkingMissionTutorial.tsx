@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Navigation, MapPin, Bike, FootprintsIcon } from 'lucide-react';
+import { Navigation, Bike, FootprintsIcon } from 'lucide-react';
 import type { TransportType } from '../../types';
 
 interface WalkingMissionTutorialProps {
@@ -24,7 +24,6 @@ export const WalkingMissionTutorial: React.FC<WalkingMissionTutorialProps> = ({
     seoKeyword,
     storeName,
     startPoint,
-    storeAddress,
     transportType
 }) => {
     const [tutorialStep, setTutorialStep] = useState(0);

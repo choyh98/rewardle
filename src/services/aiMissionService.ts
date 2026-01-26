@@ -124,7 +124,7 @@ export const analyzePlaceWithAI = async ({ storeName, address }: AnalyzeInput): 
         }
 
         if (result.status === 'fail') {
-            throw new Error(result.reason || "매장 정보를 확인할 수 없습니다.");
+            throw new Error(result.reasoning || "매장 정보를 확인할 수 없습니다.");
         }
 
         if (!result.store_analysis || !result.seo_strategy || !result.user_mission) {
@@ -147,14 +147,14 @@ export const getNaverMapSearchUrl = (keyword: string): string => {
 
 /**
  * 네이버 지도 길찾기 URL 생성 (출발지 → 도착지)
- * @param startPoint 출발지 (예: "한성대입구역 6번출구")
+ * @param _startPoint 출발지 (예: "한성대입구역 6번출구")
  * @param destination 도착지 (매장명 또는 주소)
- * @param type 교통수단 (walk: 도보, bike: 자전거)
+ * @param _type 교통수단 (walk: 도보, bike: 자전거)
  */
 export const getNaverMapDirectionsUrl = (
-    startPoint: string, 
+    _startPoint: string, 
     destination: string,
-    type: 'walk' | 'bike' = 'walk'
+    _type: 'walk' | 'bike' = 'walk'
 ): string => {
     const baseUrl = 'https://map.naver.com/p/directions';
     // 네이버 지도 길찾기 URL 형식

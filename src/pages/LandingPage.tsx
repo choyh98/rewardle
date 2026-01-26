@@ -16,12 +16,6 @@ import backgroundImage from '../assets/background.png';
 
 type Difficulty = 'easy' | 'normal' | 'hard';
 
-const difficultyInfo: Record<Difficulty, string> = {
-    easy: '3~4글자',
-    normal: '5글자',
-    hard: '6글자 이상'
-};
-
 const LandingPage: React.FC = () => {
     const { user } = useAuth();
     const { points, dailyGamesRemaining, gameHistory, nextResetTime } = usePoints();
@@ -34,7 +28,7 @@ const LandingPage: React.FC = () => {
         return (saved as Difficulty) || 'normal';
     });
     const [showDifficultyTooltip, setShowDifficultyTooltip] = useState(false);
-    const [tooltipTimeout, setTooltipTimeout] = useState<NodeJS.Timeout | null>(null);
+    const [tooltipTimeout, setTooltipTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
 
     // 첫 방문 체크
     useEffect(() => {

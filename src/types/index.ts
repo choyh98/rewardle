@@ -96,5 +96,6 @@ export interface Brand {
     placeQuiz: QuizData;          // 레거시 (호환성)
     placeUrl: string;
     appleGameWord: string;
+    shootingWordleAnswer: string; // 슈팅워들 정답
     mission?: MissionData;        // 새로운 미션 시스템
 }

@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import type { Brand, MissionData, MissionType } from '../types';
+import type { Brand, MissionData } from '../types';
 
 // 캐시 데이터 구조
 interface BrandCache {

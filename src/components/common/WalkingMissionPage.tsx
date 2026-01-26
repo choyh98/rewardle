@@ -1,16 +1,15 @@
 import React, { useState, useMemo } from 'react';
-import { ArrowLeft, Copy, CheckCircle2, MapPin, Navigation, ChevronRight, ExternalLink, Info, Bike, FootprintsIcon } from 'lucide-react';
+import { ArrowLeft, Copy, CheckCircle2, MapPin, Navigation, ChevronRight, Info, Bike, FootprintsIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import type { WalkingMissionData, TransportType } from '../../types';
-import { getNaverMapDirectionsUrl } from '../../services/aiMissionService';
 import { WalkingMissionTutorial } from './WalkingMissionTutorial';
 
 interface WalkingMissionPageProps {
     walkingData: WalkingMissionData;
     storeName: string;
     storeImage?: string;
-    placeUrl: string;
+    placeUrl?: string;
     bonusPoints: number;
     onBack: () => void;
     onSuccess: () => void;
