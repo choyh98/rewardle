@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { ArrowLeft, Copy, CheckCircle2, MapPin, Navigation, ChevronRight, Info, Bike, FootprintsIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
@@ -37,6 +37,17 @@ export const WalkingMissionPage: React.FC<WalkingMissionPageProps> = ({
     const [isCopied, setIsCopied] = useState(false);
     const [userAnswer, setUserAnswer] = useState('');
     const [showTutorial, setShowTutorial] = useState(false);
+    const [showWrongAnswer, setShowWrongAnswer] = useState(false);
+
+    // 오답 팝업 3초 후 자동 닫기
+    useEffect(() => {
+        if (showWrongAnswer) {
+            const timer = setTimeout(() => {
+                setShowWrongAnswer(false);
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [showWrongAnswer]);
 
     // 선택된 교통수단에 따라 정답 설정
     const correctAnswer = randomTransportType === 'walking' 
@@ -54,7 +65,7 @@ export const WalkingMissionPage: React.FC<WalkingMissionPageProps> = ({
         const correctMinutes = parseInt(correctAnswer.replace(/[^0-9]/g, ''));
         
         if (isNaN(userMinutes)) {
-            alert('숫자로 입력해주세요! (예: 8분)');
+            setShowWrongAnswer(true);
             return;
         }
         
@@ -70,7 +81,7 @@ export const WalkingMissionPage: React.FC<WalkingMissionPageProps> = ({
             });
             setStep('success');
         } else {
-            alert(`입력하신 시간이 너무 다릅니다. 다시 확인해주세요!\n(힌트: 정답은 ${correctMinutes}분 전후입니다)`);
+            setShowWrongAnswer(true);
             setUserAnswer('');
         }
     };
@@ -141,7 +152,7 @@ export const WalkingMissionPage: React.FC<WalkingMissionPageProps> = ({
                             <div>
                                 <div className="flex items-center gap-2 mb-3">
                                     <div className="w-6 h-6 bg-[#ff6b6b] rounded-full flex items-center justify-center text-white text-[12px] font-bold">1</div>
-                                    <p className="text-[15px] font-bold text-gray-800">황금 키워드 복사하기</p>
+                                    <p className="text-[15px] font-bold text-gray-800">키워드 복사하기</p>
                                     <button
                                         onClick={() => setShowTutorial(true)}
                                         className="ml-auto text-[12px] text-blue-600 font-bold underline"
@@ -272,17 +283,21 @@ export const WalkingMissionPage: React.FC<WalkingMissionPageProps> = ({
                                 <label className="block text-[14px] font-bold text-gray-700 mb-2">
                                     {walkingData.quizQuestion}
                                 </label>
-                                <input
-                                    type="text"
-                                    value={userAnswer}
-                                    onChange={(e) => setUserAnswer(e.target.value)}
-                                    placeholder="예: 8분 또는 8"
-                                    className="w-full h-[64px] border-2 border-gray-300 rounded-[16px] px-6 text-[24px] font-bold text-center focus:border-[#ff6b6b] focus:outline-none transition-all"
-                                    autoFocus
-                                />
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        value={userAnswer}
+                                        onChange={(e) => setUserAnswer(e.target.value)}
+                                        className="w-full h-[64px] border-2 border-gray-300 rounded-[16px] pl-6 pr-16 text-[24px] font-bold text-center focus:border-[#ff6b6b] focus:outline-none transition-all"
+                                        autoFocus
+                                    />
+                                    <span className="absolute right-6 top-1/2 -translate-y-1/2 text-[24px] font-bold text-gray-400 pointer-events-none">
+                                        분
+                                    </span>
+                                </div>
                                 <div className="mt-3 space-y-1">
                                     <p className="text-xs text-gray-600 text-center font-medium">
-                                        숫자만 입력하셔도 됩니다 (예: 8분 = 8)
+                                        숫자만 입력하세요
                                     </p>
                                     <p className="text-xs text-blue-600 text-center font-bold">
                                         ±2분 오차까지 정답으로 인정됩니다
@@ -349,6 +364,28 @@ export const WalkingMissionPage: React.FC<WalkingMissionPageProps> = ({
                 storeAddress={walkingData.storeAddress}
                 transportType={randomTransportType}
             />
+
+            {/* 오답 모달 */}
+            {showWrongAnswer && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
+                >
+                    <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.9, opacity: 0 }}
+                        className="text-center"
+                    >
+                        <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full mx-auto mb-4 flex items-center justify-center">
+                            <span className="text-[48px]">❌</span>
+                        </div>
+                        <h3 className="text-[28px] font-bold text-white">오답입니다</h3>
+                    </motion.div>
+                </motion.div>
+            )}
         </div>
     );
 };

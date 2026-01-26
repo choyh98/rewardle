@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase';
 import type { GameType } from '../types';
 
 export const gameService = {
-    // 오늘의 게임 플레이 내역 가져오기
+    // 오늘의 게임 플레이 내역 가져오기 (읽기 전용 - 변경 없음)
     async getTodayGamePlays(userId: string) {
         const today = new Date().toISOString().split('T')[0];
         const { data, error } = await supabase
@@ -24,13 +24,77 @@ export const gameService = {
         };
     },
 
-    // 게임 완료 기록
+    // 🔒 보안 강화: 게임 세션 시작 (새로운 함수)
+    async startGameSession(userId: string, gameType: GameType, brandId?: string): Promise<string> {
+        try {
+            const { data, error } = await supabase.rpc('start_game_session', {
+                p_user_id: userId,
+                p_game_type: gameType,
+                p_brand_id: brandId || null
+            });
+
+            if (error) {
+                console.error('Failed to start game session:', error);
+                throw error;
+            }
+
+            if (!data || data.length === 0) {
+                throw new Error('게임 세션 시작에 실패했습니다.');
+            }
+
+            const result = data[0];
+            
+            if (!result.success) {
+                throw new Error(result.message || '게임 세션 시작 실패');
+            }
+
+            console.log('게임 세션 시작:', result.session_id);
+            return result.session_id;
+
+        } catch (error) {
+            console.error('게임 세션 시작 중 오류:', error);
+            throw error;
+        }
+    },
+
+    // 🔒 보안 강화: 게임 완료 (RPC 함수로 변경)
+    async completeGameSession(sessionId: string, userId: string, points: number): Promise<void> {
+        try {
+            const { data, error } = await supabase.rpc('complete_game_session', {
+                p_session_id: sessionId,
+                p_user_id: userId,
+                p_points: points
+            });
+
+            if (error) {
+                console.error('Failed to complete game session:', error);
+                throw error;
+            }
+
+            if (!data || data.length === 0) {
+                throw new Error('게임 완료 처리에 실패했습니다.');
+            }
+
+            const result = data[0];
+            
+            if (!result.success) {
+                throw new Error(result.message || '게임 완료 실패');
+            }
+
+            console.log('게임 완료:', result.message);
+
+        } catch (error) {
+            console.error('게임 완료 처리 중 오류:', error);
+            throw error;
+        }
+    },
+
+    // 레거시 함수 (하위 호환성 유지 - 내부적으로 RPC 사용)
     async recordGameCompletion(userId: string, gameType: GameType, brandId?: string): Promise<void> {
-        await supabase.from('game_plays').insert({
-            user_id: userId,
-            game_type: gameType,
-            brand_id: brandId || null,
-            score: 0
-        });
+        console.warn('recordGameCompletion은 deprecated되었습니다. startGameSession + completeGameSession을 사용하세요.');
+        
+        // 간단한 게임 기록만 추가 (포인트 없이)
+        const sessionId = await this.startGameSession(userId, gameType, brandId);
+        await this.completeGameSession(sessionId, userId, 0);
     }
 };

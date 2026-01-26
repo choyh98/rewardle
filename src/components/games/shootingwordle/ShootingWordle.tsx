@@ -121,8 +121,9 @@ const ShootingWordle: React.FC<ShootingWordleProps> = ({ brand, onComplete, onBa
     return (
         <div
             ref={containerRef}
-            className="flex flex-col h-screen bg-gradient-to-b from-[#f5e6d3] to-[#ffcccb] overflow-hidden relative touch-none select-none"
+            className="flex flex-col h-screen bg-gradient-to-b from-[#f5e6d3] to-[#ffcccb] overflow-hidden relative touch-none select-none pb-safe"
             onClick={handleAction}
+            style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 20px)' }}
         >
             <header className="flex items-center justify-between px-4 py-3 z-30">
                 <button onClick={onBack} className="p-2 hover:bg-white/20 rounded-full transition-colors">
@@ -229,7 +230,7 @@ const ShootingWordle: React.FC<ShootingWordleProps> = ({ brand, onComplete, onBa
             </div>
 
             <div
-                className="absolute bottom-16 z-20"
+                className="absolute bottom-24 z-20"
                 style={{ left: `${fixedCannonX}%`, transform: 'translateX(-50%)' }}
             >
                 <div className="relative flex flex-col items-center">
@@ -311,14 +312,13 @@ const ShootingWordle: React.FC<ShootingWordleProps> = ({ brand, onComplete, onBa
                     walkingData={brand.mission.walking}
                     storeName={brand.name}
                     storeImage={brand.hintImage}
-                    placeUrl={brand.placeUrl}
-                    bonusPoints={brand.mission.bonusPoints}
+                    bonusPoints={5}
                     onBack={() => {
                         onDeductPlay();
                         onBack();
                     }}
                     onSuccess={() => {
-                        addPoints(brand.mission!.bonusPoints, `${brand.name} 슈팅 도보 미션 완료`);
+                        addPoints(5, `${brand.name} 슈팅 도보 미션 완료`);
                     }}
                 />
             )}

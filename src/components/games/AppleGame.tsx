@@ -166,12 +166,19 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
         setGrid(newGrid);
     }, [brand]);
 
+    // 타이머 - 게임 플레이 중에만 작동
     useEffect(() => {
-        if (timeLeft > 0 && !isFinished) {
-            const timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
+        if (timeLeft > 0 && !isFinished && !showQuiz && !showWordComplete) {
+            const timer = setInterval(() => {
+                setTimeLeft(prev => prev - 1);
+            }, 1000);
             return () => clearInterval(timer);
-        } else if (timeLeft === 0 && !isFinished && !gameCompleted && !showQuiz) {
-            // 퀴즈 중이 아닐 때만 시간 종료 처리
+        }
+    }, [timeLeft, isFinished, showQuiz, showWordComplete]);
+
+    // 시간 종료 처리 (별도 useEffect)
+    useEffect(() => {
+        if (timeLeft === 0 && !isFinished && !gameCompleted) {
             setIsFinished(true);
             setGameCompleted(true);
             
@@ -183,7 +190,7 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
             // 글자를 다 모았으면 5P, 1개라도 못 모았으면 0P
             onComplete(allSyllablesCollected ? 5 : 0);
         }
-    }, [timeLeft, isFinished, gameCompleted, onComplete, collectedSyllables, targetSyllables, showQuiz]);
+    }, [timeLeft, isFinished, gameCompleted, onComplete, collectedSyllables, targetSyllables]);
 
     // 20초 동안 움직임이 없으면 힌트 제공
     useEffect(() => {
@@ -604,14 +611,13 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
                     walkingData={brand.mission.walking}
                     storeName={brand.name}
                     storeImage={brand.hintImage}
-                    placeUrl={brand.placeUrl}
-                    bonusPoints={brand.mission.bonusPoints}
+                    bonusPoints={5}
                     onBack={() => {
                         onDeductPlay();
                         onBack();
                     }}
                     onSuccess={() => {
-                        addPoints(brand.mission!.bonusPoints, `${brand.name} 사과 도보 미션 완료`);
+                        addPoints(5, `${brand.name} 사과 도보 미션 완료`);
                     }}
                 />
             )}

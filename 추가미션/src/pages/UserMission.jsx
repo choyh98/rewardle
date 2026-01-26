@@ -60,7 +60,7 @@ const UserMission = ({ missionData, onComplete }) => {
                                 background: 'var(--toss-blue-light)', padding: '4px 8px', borderRadius: '6px'
                             }}>Step 1</span>
                             <h3 style={{ fontSize: '18px', fontWeight: '700', marginTop: '12px', marginBottom: '8px' }}>
-                                황금 키워드를 복사하세요
+                                키워드를 복사하세요
                             </h3>
                             <p style={{ color: 'var(--toss-grey-600)', fontSize: '14px', marginBottom: '20px' }}>
                                 매장명 없이도 검색 결과 <span style={{ color: 'var(--toss-blue)', fontWeight: '700' }}>1등에 꽂히는</span> 유일한 키워드입니다.

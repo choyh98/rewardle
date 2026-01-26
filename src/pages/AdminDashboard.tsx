@@ -145,7 +145,7 @@ const AdminDashboard: React.FC = () => {
             // mission_data 구성
             let missionData: any = {
                 type: missionType,
-                bonusPoints: missionType === 'quiz' ? 5 : 20
+                bonusPoints: 5
             };
 
             if (missionType === 'quiz') {

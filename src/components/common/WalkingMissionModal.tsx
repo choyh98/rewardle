@@ -90,7 +90,7 @@ export const WalkingMissionModal: React.FC<WalkingMissionModalProps> = ({
                                     Step 1
                                 </span>
                                 <h3 className="text-[18px] font-bold mb-2">
-                                    황금 키워드를 복사하세요
+                                    키워드를 복사하세요
                                 </h3>
                                 <p className="text-[#737373] text-[14px] mb-5">
                                     네이버 지도에서 <span className="text-[#ff6b6b] font-bold">검색 결과 1등</span>에 나오는 키워드입니다.

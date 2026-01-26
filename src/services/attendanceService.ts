@@ -13,32 +13,41 @@ export const attendanceService = {
         return data as Attendance[];
     },
 
-    async checkIn(userId: string, dateStr: string, streak: number) {
-        // Prevent duplicate check-in
-        const { data: existing } = await supabase
-            .from('attendance')
-            .select('*')
-            .eq('user_id', userId)
-            .eq('check_date', dateStr)
-            .single();
+    // 🔒 보안 강화: RPC 함수로 변경
+    async checkIn(userId: string): Promise<{ streak: number; points: number }> {
+        try {
+            const { data, error } = await supabase.rpc('secure_check_attendance', {
+                p_user_id: userId
+            });
 
-        if (existing) return existing as Attendance;
+            if (error) {
+                console.error('Failed to check in (RPC):', error);
+                throw error;
+            }
 
-        const { data, error } = await supabase
-            .from('attendance')
-            .insert({
-                user_id: userId,
-                check_date: dateStr,
-                streak: streak
-            })
-            .select()
-            .single();
+            if (!data || data.length === 0) {
+                throw new Error('출석 체크에 실패했습니다.');
+            }
 
-        if (error) throw error;
-        return data as Attendance;
+            const result = data[0];
+            
+            if (!result.success) {
+                throw new Error(result.message || '출석 체크 실패');
+            }
+
+            console.log('출석 체크 성공:', { streak: result.streak, points: result.points_awarded });
+            return {
+                streak: result.streak,
+                points: result.points_awarded
+            };
+
+        } catch (error) {
+            console.error('출석 체크 중 오류:', error);
+            throw error;
+        }
     },
 
-    // 오늘 출석 여부 확인
+    // 오늘 출석 여부 확인 (읽기 전용 - 변경 없음)
     async getTodayAttendance(userId: string): Promise<AttendanceData | null> {
         const today = new Date().toISOString().split('T')[0];
         const { data, error } = await supabase
@@ -63,7 +72,7 @@ export const attendanceService = {
         return null;
     },
 
-    // 최근 출석 기록 가져오기
+    // 최근 출석 기록 가져오기 (읽기 전용 - 변경 없음)
     async getLastAttendance(userId: string): Promise<AttendanceData | null> {
         const { data } = await supabase
             .from('attendance')
@@ -84,24 +93,9 @@ export const attendanceService = {
         return null;
     },
 
-    // 출석 체크 기록
+    // 레거시 함수 (하위 호환성 유지)
     async recordAttendance(userId: string, streak: number): Promise<void> {
-        const todayISO = new Date().toISOString().split('T')[0];
-
-        // 중복 체크
-        const { data: existingRecord } = await supabase
-            .from('attendance')
-            .select('id')
-            .eq('user_id', userId)
-            .eq('check_date', todayISO)
-            .maybeSingle();
-
-        if (!existingRecord) {
-            await supabase.from('attendance').insert({
-                user_id: userId,
-                check_date: todayISO,
-                streak: streak
-            });
-        }
+        console.warn('recordAttendance는 deprecated되었습니다. checkIn을 사용하세요.');
+        await this.checkIn(userId);
     }
 };

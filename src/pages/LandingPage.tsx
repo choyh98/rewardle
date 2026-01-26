@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Award, LogOut, Target, Play, Info } from 'lucide-react';
+import { Award, LogOut, Target, Play, Info, MessageCircle, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { usePoints } from '../context/PointsContext';
 import { getDefaultBrand, type Brand } from '../data/brands';
@@ -29,6 +29,13 @@ const LandingPage: React.FC = () => {
     });
     const [showDifficultyTooltip, setShowDifficultyTooltip] = useState(false);
     const [tooltipTimeout, setTooltipTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
+    const [showContactModal, setShowContactModal] = useState(false);
+    const [contactForm, setContactForm] = useState({
+        type: 'report',
+        email: '',
+        message: ''
+    });
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // 첫 방문 체크
     useEffect(() => {
@@ -124,6 +131,51 @@ const LandingPage: React.FC = () => {
                 console.error('로그아웃 실패:', error);
                 alert('로그아웃에 실패했습니다. 다시 시도해주세요.');
             }
+        }
+    };
+
+    const handleContactSubmit = async () => {
+        if (!contactForm.message.trim()) {
+            alert('내용을 입력해주세요.');
+            return;
+        }
+
+        if (!contactForm.email.trim()) {
+            alert('회신받을 이메일을 입력해주세요.');
+            return;
+        }
+
+        setIsSubmitting(true);
+
+        try {
+            // mailto 링크로 이메일 클라이언트 열기
+            const subject = contactForm.type === 'report' ? '[리워들] 신고' : '[리워들] 문의';
+            const body = `
+보낸 사람 이메일: ${contactForm.email}
+
+내용:
+${contactForm.message}
+
+---
+보낸 시간: ${new Date().toLocaleString('ko-KR')}
+사용자 ID: ${user?.id || 'guest'}
+            `.trim();
+
+            const mailtoLink = `mailto:rewardle2026@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            window.location.href = mailtoLink;
+
+            // 폼 초기화 및 모달 닫기
+            setTimeout(() => {
+                setContactForm({ type: 'report', email: '', message: '' });
+                setShowContactModal(false);
+                setIsSubmitting(false);
+                alert('메일 앱이 열렸습니다. 전송 버튼을 눌러주세요!');
+            }, 500);
+
+        } catch (error) {
+            console.error('이메일 전송 실패:', error);
+            alert('전송에 실패했습니다. 다시 시도해주세요.');
+            setIsSubmitting(false);
         }
     };
 
@@ -260,7 +312,7 @@ const LandingPage: React.FC = () => {
                         onClick={(e) => {
                             if (!defaultBrand) {
                                 e.preventDefault();
-                                alert('퀴즈를 불러오는 중입니다. 잠시만 기다려주세요.');
+                                alert('준비된 퀴즈가 전부 소진됐어요!\n난이도를 변경해서 다시 시도해주세요!');
                             }
                         }}
                     >
@@ -283,7 +335,7 @@ const LandingPage: React.FC = () => {
                         onClick={(e) => {
                             if (!defaultBrand) {
                                 e.preventDefault();
-                                alert('퀴즈를 불러오는 중입니다. 잠시만 기다려주세요.');
+                                alert('준비된 퀴즈가 모두 소진되었어요!\n난이도를 변경해서 다시 시도해주세요!');
                             }
                         }}
                     >
@@ -308,7 +360,7 @@ const LandingPage: React.FC = () => {
                         onClick={(e) => {
                             if (!defaultBrand) {
                                 e.preventDefault();
-                                alert('퀴즈를 불러오는 중입니다. 잠시만 기다려주세요.');
+                                alert('준비된 퀴즈가 전부 소진되었어요!\n난이도를 변경해서 다시 시도해주세요!');
                             }
                         }}
                     >
@@ -350,6 +402,15 @@ const LandingPage: React.FC = () => {
                             로그인하기
                         </Link>
                     )}
+
+                    {/* 신고/문의하기 버튼 */}
+                    <button
+                        onClick={() => setShowContactModal(true)}
+                        className="w-full bg-white rounded-2xl p-5 text-center text-gray-600 font-semibold hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 shadow-sm"
+                    >
+                        <MessageCircle size={20} />
+                        <span>신고 / 문의하기</span>
+                    </button>
                 </div>
             </div>
 
@@ -401,6 +462,98 @@ const LandingPage: React.FC = () => {
                             확인
                         </button>
                     </div>
+                </div>
+            )}
+
+            {/* Contact Modal (신고/문의하기) */}
+            {showContactModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6" onClick={() => setShowContactModal(false)}>
+                    <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.9, opacity: 0 }}
+                        className="bg-white rounded-[20px] p-6 max-w-[400px] w-full"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* 헤더 */}
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="font-bold text-[22px] text-gray-800">신고 / 문의하기</h2>
+                            <button
+                                onClick={() => setShowContactModal(false)}
+                                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                            >
+                                <X size={24} className="text-gray-600" />
+                            </button>
+                        </div>
+
+                        {/* 타입 선택 */}
+                        <div className="mb-4">
+                            <label className="block text-sm font-bold text-gray-700 mb-2">유형</label>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setContactForm({ ...contactForm, type: 'report' })}
+                                    className={`flex-1 py-2 px-4 rounded-lg font-semibold transition-colors ${
+                                        contactForm.type === 'report'
+                                            ? 'bg-red-500 text-white'
+                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                    }`}
+                                >
+                                    신고
+                                </button>
+                                <button
+                                    onClick={() => setContactForm({ ...contactForm, type: 'inquiry' })}
+                                    className={`flex-1 py-2 px-4 rounded-lg font-semibold transition-colors ${
+                                        contactForm.type === 'inquiry'
+                                            ? 'bg-blue-500 text-white'
+                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                    }`}
+                                >
+                                    문의
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* 이메일 입력 */}
+                        <div className="mb-4">
+                            <label className="block text-sm font-bold text-gray-700 mb-2">회신받을 이메일</label>
+                            <input
+                                type="email"
+                                value={contactForm.email}
+                                onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
+                                placeholder="example@email.com"
+                                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none transition-colors"
+                            />
+                        </div>
+
+                        {/* 내용 입력 */}
+                        <div className="mb-6">
+                            <label className="block text-sm font-bold text-gray-700 mb-2">내용</label>
+                            <textarea
+                                value={contactForm.message}
+                                onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
+                                placeholder={contactForm.type === 'report' ? '신고 내용을 입력해주세요...' : '문의 내용을 입력해주세요...'}
+                                rows={6}
+                                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none transition-colors resize-none"
+                            />
+                        </div>
+
+                        {/* 전송 버튼 */}
+                        <button
+                            onClick={handleContactSubmit}
+                            disabled={isSubmitting}
+                            className={`w-full py-3 rounded-lg font-bold text-white transition-colors ${
+                                isSubmitting
+                                    ? 'bg-gray-300 cursor-not-allowed'
+                                    : 'bg-primary hover:bg-primary-dark'
+                            }`}
+                        >
+                            {isSubmitting ? '전송 중...' : '전송하기'}
+                        </button>
+
+                        <p className="text-xs text-gray-500 text-center mt-3">
+                            메일 앱으로 이동하여 전송됩니다
+                        </p>
+                    </motion.div>
                 </div>
             )}
         </div>

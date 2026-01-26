@@ -3,7 +3,7 @@ import { STORAGE_KEYS } from '../data/constants';
 import type { PointHistory } from '../types';
 
 export const pointService = {
-    // 사용자 포인트 가져오기
+    // 사용자 포인트 가져오기 (읽기 전용 - 변경 없음)
     async getUserPoints(userId: string): Promise<number> {
         const { data, error } = await supabase
             .from('user_points')
@@ -15,22 +15,10 @@ export const pointService = {
             throw error;
         }
 
-        // 레코드가 없으면 생성
-        if (!data) {
-            const { error: insertError } = await supabase
-                .from('user_points')
-                .insert({ user_id: userId, points: 0 });
-            
-            if (insertError) {
-                console.error('Failed to create user_points:', insertError);
-            }
-            return 0;
-        }
-
-        return data.points || 0;
+        return data?.points || 0;
     },
 
-    // 포인트 내역 가져오기
+    // 포인트 내역 가져오기 (읽기 전용 - 변경 없음)
     async getPointHistory(userId: string, limit = 100): Promise<PointHistory[]> {
         const { data, error } = await supabase
             .from('point_history')
@@ -48,43 +36,41 @@ export const pointService = {
         }));
     },
 
-    // 포인트 추가
+    // 🔒 보안 강화: RPC 함수로 변경
+    // 포인트 추가 (이제 보안 RPC 함수 사용)
     async addPoints(userId: string, amount: number, reason: string): Promise<number> {
-        // 1. 현재 포인트 조회 (DB에서 직접 가져옴)
-        const currentPoints = await this.getUserPoints(userId);
-        const newPoints = currentPoints + amount;
+        console.log('addPoints (RPC):', { userId, amount, reason });
 
-        console.log('addPoints:', { userId, currentPoints, amount, newPoints });
-
-        // 2. 포인트 내역 추가
-        const { error: historyError } = await supabase.from('point_history').insert({
-            user_id: userId,
-            amount,
-            reason
-        });
-
-        if (historyError) {
-            console.error('Failed to insert point_history:', historyError);
-            throw historyError;
-        }
-
-        // 3. 총 포인트 업데이트 (upsert 사용)
-        const { error: updateError } = await supabase
-            .from('user_points')
-            .upsert({ 
-                user_id: userId, 
-                points: newPoints 
-            }, {
-                onConflict: 'user_id'
+        try {
+            // RPC 함수 호출 (서버 측 검증 포함)
+            const { data, error } = await supabase.rpc('secure_add_points', {
+                p_user_id: userId,
+                p_amount: amount,
+                p_reason: reason
             });
 
-        if (updateError) {
-            console.error('Failed to upsert user_points:', updateError);
-            throw updateError;
+            if (error) {
+                console.error('Failed to add points (RPC):', error);
+                throw error;
+            }
+
+            if (!data || data.length === 0) {
+                throw new Error('포인트 적립에 실패했습니다.');
+            }
+
+            const result = data[0];
+            
+            if (!result.success) {
+                throw new Error(result.message || '포인트 적립 실패');
+            }
+
+            console.log('포인트 적립 성공 (RPC):', result.new_points);
+            return result.new_points;
+
+        } catch (error) {
+            console.error('포인트 적립 중 오류:', error);
+            throw error;
         }
-        
-        console.log('포인트 저장 성공:', newPoints);
-        return newPoints;
     },
 
     // 게스트 포인트를 로그인 계정으로 마이그레이션
@@ -102,39 +88,19 @@ export const pointService = {
             const pointsToMigrate = parseInt(guestPoints);
             console.log('게스트 포인트 마이그레이션 시작:', { pointsToMigrate, newUserId });
 
-            // 2. 로그인 계정에 포인트 추가
-            const newTotalPoints = await this.addPoints(
+            // 2. RPC 함수로 로그인 계정에 포인트 추가
+            await this.addPoints(
                 newUserId,
                 pointsToMigrate,
                 '게스트 모드에서 획득한 포인트 이전'
             );
 
-            // 3. 게스트 히스토리도 마이그레이션 (선택사항)
-            if (guestHistory) {
-                try {
-                    const historyItems = JSON.parse(guestHistory);
-                    // 최근 10개만 마이그레이션
-                    const itemsToMigrate = historyItems.slice(0, 10);
-                    
-                    for (const item of itemsToMigrate) {
-                        await supabase.from('point_history').insert({
-                            user_id: newUserId,
-                            amount: item.amount,
-                            reason: `[게스트] ${item.reason}`,
-                            created_at: item.date
-                        });
-                    }
-                } catch (historyError) {
-                    console.error('히스토리 마이그레이션 실패 (무시):', historyError);
-                }
-            }
-
-            // 4. localStorage 정리
+            // 3. localStorage 정리
             localStorage.removeItem(STORAGE_KEYS.POINTS);
             localStorage.removeItem(STORAGE_KEYS.HISTORY);
             localStorage.removeItem(STORAGE_KEYS.GUEST_ID);
 
-            console.log('마이그레이션 완료:', { migratedPoints: pointsToMigrate, newTotalPoints });
+            console.log('마이그레이션 완료:', { migratedPoints: pointsToMigrate });
             return { migratedPoints: pointsToMigrate, success: true };
 
         } catch (error) {

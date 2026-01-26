@@ -4,4 +4,4 @@ export { gameService } from '../services/gameService';
 export { attendanceService } from '../services/attendanceService';
 export { authService } from '../services/authService';
 export { brandService } from '../services/brandService';
-
+export { missionService } from '../services/missionService';

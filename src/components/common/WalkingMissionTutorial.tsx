@@ -383,11 +383,7 @@ export const WalkingMissionTutorial: React.FC<WalkingMissionTutorialProps> = ({
                             </button>
                         ) : (
                             <button
-                                onClick={() => {
-                                    handleClose();
-                                    // 네이버 메인으로 이동
-                                    window.open('https://www.naver.com', '_blank');
-                                }}
+                                onClick={handleClose}
                                 className="flex-1 h-[48px] bg-[#ff6b6b] text-white font-bold rounded-xl hover:bg-[#ff5252] transition-colors"
                             >
                                 시작하기

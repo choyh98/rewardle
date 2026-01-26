@@ -388,14 +388,13 @@ const WordleGame: React.FC<WordleGameProps> = ({ brand, onComplete, onBack, onDe
                     walkingData={brand.mission.walking}
                     storeName={brand.name}
                     storeImage={brand.hintImage}
-                    placeUrl={brand.placeUrl}
-                    bonusPoints={brand.mission.bonusPoints}
+                    bonusPoints={5}
                     onBack={() => {
                         onDeductPlay();
                         onBack();
                     }}
                     onSuccess={() => {
-                        addPoints(brand.mission!.bonusPoints, `${brand.name} 워들 도보 미션 완료`);
+                        addPoints(5, `${brand.name} 워들 도보 미션 완료`);
                     }}
                 />
             )}
