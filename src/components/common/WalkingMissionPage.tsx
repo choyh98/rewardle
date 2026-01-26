@@ -24,7 +24,6 @@ export const WalkingMissionPage: React.FC<WalkingMissionPageProps> = ({
     walkingData,
     storeName,
     storeImage,
-    placeUrl,
     bonusPoints,
     onBack,
     onSuccess
