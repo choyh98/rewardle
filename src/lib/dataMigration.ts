@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { STORAGE_KEYS } from '../data/constants';
 
 /**
  * localStorage 데이터를 Supabase로 마이그레이션
@@ -9,7 +10,7 @@ export const migrateLocalStorageToSupabase = async (userId: string): Promise<boo
         console.log('🔄 Starting data migration to Supabase...');
 
         // 1. 포인트 마이그레이션
-        const savedPoints = localStorage.getItem('rewardle_points');
+        const savedPoints = localStorage.getItem(STORAGE_KEYS.POINTS);
         if (savedPoints) {
             const points = parseInt(savedPoints);
             await supabase.from('user_points').upsert({
@@ -20,7 +21,7 @@ export const migrateLocalStorageToSupabase = async (userId: string): Promise<boo
         }
 
         // 2. 포인트 내역 마이그레이션
-        const savedHistory = localStorage.getItem('rewardle_history');
+        const savedHistory = localStorage.getItem(STORAGE_KEYS.HISTORY);
         if (savedHistory) {
             const history = JSON.parse(savedHistory);
             if (Array.isArray(history) && history.length > 0) {
@@ -37,8 +38,8 @@ export const migrateLocalStorageToSupabase = async (userId: string): Promise<boo
         }
 
         // 3. 출석 기록 마이그레이션
-        const lastCheck = localStorage.getItem('rewardle_last_check');
-        const streak = localStorage.getItem('rewardle_attendance_streak');
+        const lastCheck = localStorage.getItem(STORAGE_KEYS.LAST_CHECK);
+        const streak = localStorage.getItem(STORAGE_KEYS.ATTENDANCE_STREAK);
         if (lastCheck && streak) {
             const checkDate = new Date(lastCheck).toISOString().split('T')[0];
             await supabase.from('attendance').insert({
@@ -50,7 +51,7 @@ export const migrateLocalStorageToSupabase = async (userId: string): Promise<boo
         }
 
         // 4. 오늘의 게임 플레이 기록 마이그레이션
-        const savedGameHistory = localStorage.getItem('rewardle_game_history');
+        const savedGameHistory = localStorage.getItem(STORAGE_KEYS.GAME_HISTORY);
         if (savedGameHistory) {
             const gameHistory = JSON.parse(savedGameHistory);
             const today = new Date().toDateString();
@@ -88,16 +89,7 @@ export const migrateLocalStorageToSupabase = async (userId: string): Promise<boo
  * 마이그레이션 성공 후 호출
  */
 export const clearLocalStorageData = () => {
-    const keysToRemove = [
-        'rewardle_points',
-        'rewardle_history',
-        'rewardle_last_check',
-        'rewardle_attendance_streak',
-        'rewardle_daily_games',
-        'rewardle_game_history',
-        'rewardle_completed_brands',
-        'rewardle_guest_id'
-    ];
+    const keysToRemove = Object.values(STORAGE_KEYS);
 
     keysToRemove.forEach(key => {
         localStorage.removeItem(key);

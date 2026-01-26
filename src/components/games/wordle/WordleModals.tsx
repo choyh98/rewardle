@@ -181,7 +181,7 @@ export const WordleMissionModal: React.FC<MissionModalProps> = ({ question, plac
                             value={userAnswer}
                             onChange={(e) => setUserAnswer(e.target.value)}
                             className="border-2 border-[#e5e5e5] rounded-[12px] px-4 py-3 text-[18px] focus:border-[#ff6b6b] focus:outline-none"
-                            placeholder="숫자만 입력"
+                            placeholder="글자나 숫자만 입력"
                         />
                     </div>
 

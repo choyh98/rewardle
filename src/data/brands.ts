@@ -1,21 +1,5 @@
 import { supabase } from '../lib/supabase';
-
-interface QuizData {
-    question: string;
-    answer: string;
-    bonusPoints: number;
-}
-
-interface Brand {
-    id: string;
-    name: string;
-    wordleAnswer: string[];
-    hintImage: string;
-    placeQuiz: QuizData;
-    placeUrl: string;
-    appleGameWord: string;
-    shootingWordleAnswer: string; // 슈팅워들 정답 추가
-}
+import type { Brand, MissionData, MissionType } from '../types';
 
 // 캐시 데이터 구조
 interface BrandCache {
@@ -64,20 +48,42 @@ export const fetchBrands = async (): Promise<Brand[]> => {
         }
 
         // Supabase 데이터를 Brand 형식으로 변환
-        const brands = data.map(item => ({
-            id: item.id,
-            name: item.name,
-            wordleAnswer: item.wordle_answer,
-            hintImage: item.hint_image,
-            placeQuiz: {
-                question: item.place_quiz_question,
-                answer: item.place_quiz_answer,
-                bonusPoints: 5
-            },
-            placeUrl: item.place_url,
-            appleGameWord: item.apple_game_word,
-            shootingWordleAnswer: item.shooting_wordle_answer || item.name // 없으면 가게명 사용
-        }));
+        const brands = data.map(item => {
+            // mission_data 파싱
+            let missionData: MissionData | undefined;
+            
+            if (item.mission_data) {
+                // 새로운 mission_data 사용
+                missionData = item.mission_data as MissionData;
+            } else if (item.place_quiz_question && item.place_quiz_answer) {
+                // 레거시 placeQuiz 데이터를 mission_data로 변환
+                missionData = {
+                    type: 'quiz',
+                    quiz: {
+                        question: item.place_quiz_question,
+                        answer: item.place_quiz_answer,
+                        bonusPoints: 5
+                    },
+                    bonusPoints: 5
+                };
+            }
+
+            return {
+                id: item.id,
+                name: item.name,
+                wordleAnswer: item.wordle_answer,
+                hintImage: item.hint_image,
+                placeQuiz: {
+                    question: item.place_quiz_question || '',
+                    answer: item.place_quiz_answer || '',
+                    bonusPoints: 5
+                },
+                placeUrl: item.place_url,
+                appleGameWord: item.apple_game_word,
+                shootingWordleAnswer: item.shooting_wordle_answer || item.name,
+                mission: missionData
+            };
+        });
 
         // 새 데이터로 캐시 업데이트
         cachedBrands = {
@@ -152,9 +158,9 @@ export const getDefaultBrand = async (difficulty?: 'easy' | 'normal' | 'hard'): 
             if (difficulty === 'easy') {
                 return wordLength >= 3 && wordLength <= 4;
             } else if (difficulty === 'normal') {
-                return wordLength >= 5 && wordLength <= 6;
+                return wordLength === 5;
             } else { // hard
-                return wordLength >= 7;
+                return wordLength >= 6;
             }
         });
     }
@@ -181,4 +187,4 @@ export const invalidateBrandsCache = () => {
     cachedBrands = null;
 };
 
-export type { Brand, QuizData };
+export type { Brand, QuizData } from '../types';

@@ -1,7 +1,7 @@
 import React from 'react';
 import { ExternalLink } from 'lucide-react';
 
-interface ShootingWordleMissionModalProps {
+interface MissionModalProps {
     question: string;
     placeUrl: string;
     bonusPoints: number;
@@ -9,25 +9,41 @@ interface ShootingWordleMissionModalProps {
     onSubmit: (userAnswer: string) => boolean;
 }
 
-export const ShootingWordleMissionModal: React.FC<ShootingWordleMissionModalProps> = ({ question, placeUrl, bonusPoints, onHome, onSubmit }) => {
+/**
+ * 공통 미션 모달 컴포넌트
+ * 워들, 사과게임, 슈팅워들 모두에서 사용
+ */
+export const MissionModal: React.FC<MissionModalProps> = ({ 
+    question, 
+    placeUrl, 
+    bonusPoints, 
+    onHome, 
+    onSubmit 
+}) => {
     const [userAnswer, setUserAnswer] = React.useState('');
-    const [result, setResult] = React.useState<{ correct: boolean } | null>(null);
+    const [result, setResult] = React.useState<'none' | 'success' | 'fail'>('none');
 
     const handleSubmit = () => {
-        if (result?.correct) return;
+        if (result === 'success') return;
         const success = onSubmit(userAnswer);
         if (success) {
-            setResult({ correct: true });
+            setResult('success');
         } else {
-            setResult({ correct: false });
+            setResult('fail');
             setUserAnswer('');
-            setTimeout(() => setResult(null), 2000);
+            setTimeout(() => setResult('none'), 2000);
         }
     };
 
     return (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-6" onClick={(e) => e.stopPropagation()}>
-            <div className="bg-white rounded-[24px] p-8 max-w-[400px] w-full" onClick={(e) => e.stopPropagation()}>
+        <div 
+            className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-6" 
+            onClick={(e) => e.stopPropagation()}
+        >
+            <div 
+                className="bg-white rounded-[24px] p-8 max-w-[400px] w-full" 
+                onClick={(e) => e.stopPropagation()}
+            >
                 <div className="flex flex-col gap-6">
                     <h2 className="font-black text-[24px] text-[#ff6b6b]">추가 미션!</h2>
                     
@@ -46,7 +62,7 @@ export const ShootingWordleMissionModal: React.FC<ShootingWordleMissionModalProp
                             value={userAnswer}
                             onChange={(e) => setUserAnswer(e.target.value)}
                             className="border-2 border-[#e5e5e5] rounded-[12px] px-4 py-3 text-[18px] focus:border-[#ff6b6b] focus:outline-none"
-                            placeholder="숫자만 입력"
+                            placeholder="글자나 숫자만 입력"
                         />
                     </div>
 
@@ -67,19 +83,19 @@ export const ShootingWordleMissionModal: React.FC<ShootingWordleMissionModalProp
 
                     <button
                         onClick={handleSubmit}
-                        disabled={(result?.correct) || !userAnswer.trim()}
+                        disabled={result === 'success' || !userAnswer.trim()}
                         className="bg-[#ff6b6b] h-[50px] rounded-[12px] text-white font-black text-[20px] hover:bg-[#ff5252] active:bg-[#e05555] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         제출하기
                     </button>
 
-                    {result !== null && (
-                        <div className={`text-center font-bold ${result.correct ? 'text-[#4caf50]' : 'text-[#ff6b6b]'}`}>
-                            {result.correct ? '정답입니다! 포인트가 적립되었습니다.' : '아쉬워요! 다시 도전해보세요.'}
+                    {result !== 'none' && (
+                        <div className={`text-center font-bold ${result === 'success' ? 'text-[#4caf50]' : 'text-[#ff6b6b]'}`}>
+                            {result === 'success' ? '정답입니다! 포인트가 적립되었습니다.' : '아쉬워요! 다시 도전해보세요.'}
                         </div>
                     )}
                     
-                    {result?.correct && (
+                    {result === 'success' && (
                         <button 
                             onClick={onHome} 
                             className="w-full mt-2 h-12 text-[#737373] font-medium hover:text-[#121212] transition-colors"

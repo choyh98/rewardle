@@ -2,10 +2,8 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { ArrowLeft, Target } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useShootingWordle } from '../../../hooks/useShootingWordle';
+import { MissionModal, SuccessModal, FailModal, WalkingMissionPage } from '../../common';
 import { ShootingWordleHelpModal } from './modals/ShootingWordleHelpModal';
-import { ShootingWordleSuccessModal } from './modals/ShootingWordleSuccessModal';
-import { ShootingWordleFailModal } from './modals/ShootingWordleFailModal';
-import { ShootingWordleMissionModal } from './modals/ShootingWordleMissionModal';
 import { usePoints } from '../../../context/PointsContext';
 import type { Brand } from '../../../data/brands';
 
@@ -235,6 +233,22 @@ const ShootingWordle: React.FC<ShootingWordleProps> = ({ brand, onComplete, onBa
                 style={{ left: `${fixedCannonX}%`, transform: 'translateX(-50%)' }}
             >
                 <div className="relative flex flex-col items-center">
+                    {/* Touch 텍스트 */}
+                    <motion.div
+                        animate={{ 
+                            y: [0, -5, 0],
+                            opacity: [0.7, 1, 0.7]
+                        }}
+                        transition={{ 
+                            duration: 1.5,
+                            repeat: Infinity,
+                            ease: "easeInOut"
+                        }}
+                        className="absolute -top-12 text-gray-700 font-bold text-[14px] tracking-wider"
+                    >
+                        TOUCH
+                    </motion.div>
+                    
                     <div className="w-6 h-12 bg-gray-600 rounded-t-full border-x-4 border-gray-700 shadow-lg" />
                     <div className="w-20 h-10 bg-gray-800 rounded-2xl -mt-2 border-b-4 border-gray-900 shadow-xl flex items-center justify-center">
                         <div className="size-4 bg-[#ff6b6b] rounded-full animate-pulse" />
@@ -286,13 +300,30 @@ const ShootingWordle: React.FC<ShootingWordleProps> = ({ brand, onComplete, onBa
 
             {showHelp && <ShootingWordleHelpModal onClose={() => setShowHelp(false)} />}
             {gameState === 'success' && !showMission && (
-                <ShootingWordleSuccessModal
+                <SuccessModal
+                    emoji="🎉"
                     onStartMission={() => setShowMission(true)}
                     onGoHome={() => { onDeductPlay(); onBack(); }}
                 />
             )}
-            {showMission && (
-                <ShootingWordleMissionModal
+            {showMission && brand.mission?.type === 'walking' && brand.mission.walking && (
+                <WalkingMissionPage
+                    walkingData={brand.mission.walking}
+                    storeName={brand.name}
+                    storeImage={brand.hintImage}
+                    placeUrl={brand.placeUrl}
+                    bonusPoints={brand.mission.bonusPoints}
+                    onBack={() => {
+                        onDeductPlay();
+                        onBack();
+                    }}
+                    onSuccess={() => {
+                        addPoints(brand.mission!.bonusPoints, `${brand.name} 슈팅 도보 미션 완료`);
+                    }}
+                />
+            )}
+            {showMission && (!brand.mission || brand.mission.type === 'quiz') && (
+                <MissionModal
                     question={brand.placeQuiz.question}
                     placeUrl={brand.placeUrl}
                     bonusPoints={5}
@@ -301,7 +332,7 @@ const ShootingWordle: React.FC<ShootingWordleProps> = ({ brand, onComplete, onBa
                 />
             )}
             {gameState === 'fail' && (
-                <ShootingWordleFailModal
+                <FailModal
                     onRetry={() => { onDeductPlay(); window.location.reload(); }}
                     onGoHome={() => { onDeductPlay(); onBack(); }}
                 />

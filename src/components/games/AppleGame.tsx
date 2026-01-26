@@ -3,10 +3,8 @@ import { ArrowLeft } from 'lucide-react';
 import type { Brand } from '../../data/brands';
 import appleImage from '../../assets/apple.png';
 import { usePoints } from '../../context/PointsContext';
+import { MissionModal, SuccessModal, FailModal, WalkingMissionPage } from '../common';
 import { AppleHelpModal } from './apple/AppleHelpModal';
-import { AppleSuccessModal } from './apple/AppleSuccessModal';
-import { AppleMissionModal } from './apple/AppleModals';
-import { AppleFailModal } from './apple/AppleFailModal';
 
 const MaterialSymbolsHelpRounded = () => (
     <svg className="size-full" viewBox="0 0 48 48" fill="none">
@@ -588,7 +586,7 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
 
             {/* Word Complete Popup */}
             {showWordComplete && (
-                <AppleSuccessModal
+                <SuccessModal
                     onStartMission={() => {
                         setShowWordComplete(false);
                         setShowQuiz(true);
@@ -600,9 +598,26 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
                 />
             )}
 
-            {/* Quiz Popup */}
-            {showQuiz && (
-                <AppleMissionModal
+            {/* Quiz Popup or Walking Mission */}
+            {showQuiz && brand.mission?.type === 'walking' && brand.mission.walking && (
+                <WalkingMissionPage
+                    walkingData={brand.mission.walking}
+                    storeName={brand.name}
+                    storeImage={brand.hintImage}
+                    placeUrl={brand.placeUrl}
+                    bonusPoints={brand.mission.bonusPoints}
+                    onBack={() => {
+                        onDeductPlay();
+                        onBack();
+                    }}
+                    onSuccess={() => {
+                        addPoints(brand.mission!.bonusPoints, `${brand.name} 사과 도보 미션 완료`);
+                    }}
+                />
+            )}
+
+            {showQuiz && (!brand.mission || brand.mission.type === 'quiz') && (
+                <MissionModal
                     question={brand.placeQuiz.question}
                     placeUrl={brand.placeUrl}
                     bonusPoints={5}
@@ -616,7 +631,7 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
 
             {/* Game Over */}
             {isFinished && !showWordComplete && !showQuiz && (
-                <AppleFailModal
+                <FailModal
                     score={score}
                     onRetry={() => {
                         onDeductPlay();

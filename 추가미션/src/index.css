@@ -1,0 +1,137 @@
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+
+:root {
+  --toss-blue: #0064FF;
+  --toss-blue-light: #E8F3FF;
+  --toss-grey-50: #F9FAFB;
+  --toss-grey-100: #F2F4F6;
+  --toss-grey-200: #E5E8EB;
+  --toss-grey-300: #D1D6DB;
+  --toss-grey-400: #B0B8C1;
+  --toss-grey-500: #8B95A1;
+  --toss-grey-600: #6B7684;
+  --toss-grey-700: #4E5968;
+  --toss-grey-800: #333D4B;
+  --toss-grey-900: #191F28;
+
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 20px);
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  background-color: var(--toss-grey-100);
+  color: var(--toss-grey-900);
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+#root {
+  max-width: 500px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background-color: white;
+  position: relative;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+}
+
+.toss-card {
+  background: white;
+  border-radius: 24px;
+  padding: 24px;
+  margin-bottom: 12px;
+}
+
+.toss-button {
+  width: 100%;
+  height: 56px;
+  border-radius: 16px;
+  border: none;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.1s ease, background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.toss-button:active {
+  transform: scale(0.98);
+}
+
+.toss-button-primary {
+  background-color: var(--toss-blue);
+  color: white;
+}
+
+.toss-button-primary:disabled {
+  background-color: var(--toss-grey-200);
+  color: var(--toss-grey-400);
+  cursor: not-allowed;
+}
+
+.toss-button-secondary {
+  background-color: var(--toss-blue-light);
+  color: var(--toss-blue);
+}
+
+.toss-input {
+  width: 100%;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--toss-grey-200);
+  font-size: 16px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.toss-input:focus {
+  border-color: var(--toss-blue);
+}
+
+.status-bar {
+  height: 44px;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: 600;
+  background: white;
+}
+
+.bottom-cta {
+  position: fixed;
+  bottom: 0;
+  max-width: 500px;
+  width: 100%;
+  background: white;
+  padding: 16px 20px calc(16px + var(--safe-area-inset-bottom));
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
+}
+
+/* Animations */
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Award, LogOut, Target, Play } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Award, LogOut, Target, Play, Info } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { usePoints } from '../context/PointsContext';
 import { getDefaultBrand, type Brand } from '../data/brands';
 import { supabase } from '../lib/supabase';
 import { OnboardingTutorial } from '../components/common';
+import { STORAGE_KEYS, TIMERS } from '../data/constants';
 import appleIcon from '../assets/apple.png';
 import wordleIcon from '../assets/wordle.png';
 import checkIcon from '../assets/check.png';
@@ -14,6 +15,12 @@ import pointIcon from '../assets/point.png';
 import backgroundImage from '../assets/background.png';
 
 type Difficulty = 'easy' | 'normal' | 'hard';
+
+const difficultyInfo: Record<Difficulty, string> = {
+    easy: '3~4글자',
+    normal: '5글자',
+    hard: '6글자 이상'
+};
 
 const LandingPage: React.FC = () => {
     const { user } = useAuth();
@@ -23,20 +30,22 @@ const LandingPage: React.FC = () => {
     const [timeRemaining, setTimeRemaining] = useState<string>('');
     const [showOnboarding, setShowOnboarding] = useState(false);
     const [difficulty, setDifficulty] = useState<Difficulty>(() => {
-        const saved = localStorage.getItem('rewardle_difficulty');
+        const saved = localStorage.getItem(STORAGE_KEYS.DIFFICULTY);
         return (saved as Difficulty) || 'normal';
     });
+    const [showDifficultyTooltip, setShowDifficultyTooltip] = useState(false);
+    const [tooltipTimeout, setTooltipTimeout] = useState<NodeJS.Timeout | null>(null);
 
     // 첫 방문 체크
     useEffect(() => {
-        const hasSeenOnboarding = localStorage.getItem('rewardle_onboarding_completed');
+        const hasSeenOnboarding = localStorage.getItem(STORAGE_KEYS.ONBOARDING_COMPLETED);
         if (!hasSeenOnboarding) {
             setShowOnboarding(true);
         }
     }, []);
 
     const handleOnboardingComplete = () => {
-        localStorage.setItem('rewardle_onboarding_completed', 'true');
+        localStorage.setItem(STORAGE_KEYS.ONBOARDING_COMPLETED, 'true');
         setShowOnboarding(false);
     };
 
@@ -51,8 +60,32 @@ const LandingPage: React.FC = () => {
     // 난이도 변경 핸들러
     const handleDifficultyChange = (newDifficulty: Difficulty) => {
         setDifficulty(newDifficulty);
-        localStorage.setItem('rewardle_difficulty', newDifficulty);
+        localStorage.setItem(STORAGE_KEYS.DIFFICULTY, newDifficulty);
+        
+        // 툴팁 표시
+        setShowDifficultyTooltip(true);
+        
+        // 기존 타이머 클리어
+        if (tooltipTimeout) {
+            clearTimeout(tooltipTimeout);
+        }
+        
+        // 2초 후 자동 숨김
+        const timeout = setTimeout(() => {
+            setShowDifficultyTooltip(false);
+        }, TIMERS.TOOLTIP_DURATION);
+        
+        setTooltipTimeout(timeout);
     };
+    
+    // 컴포넌트 언마운트 시 타이머 정리
+    useEffect(() => {
+        return () => {
+            if (tooltipTimeout) {
+                clearTimeout(tooltipTimeout);
+            }
+        };
+    }, [tooltipTimeout]);
 
     // 타이머 업데이트
     useEffect(() => {
@@ -144,37 +177,60 @@ const LandingPage: React.FC = () => {
                             </button>
 
                             {/* 난이도 토글 버튼 */}
-                            <div className="bg-white/20 backdrop-blur-sm rounded-full p-1 flex items-center gap-1 flex-shrink-0">
-                                <button
-                                    onClick={() => handleDifficultyChange('easy')}
-                                    className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap ${
-                                        difficulty === 'easy'
-                                            ? 'bg-white text-primary shadow-sm'
-                                            : 'text-white/80 hover:text-white'
-                                    }`}
-                                >
-                                    쉬움
-                                </button>
-                                <button
-                                    onClick={() => handleDifficultyChange('normal')}
-                                    className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap ${
-                                        difficulty === 'normal'
-                                            ? 'bg-white text-primary shadow-sm'
-                                            : 'text-white/80 hover:text-white'
-                                    }`}
-                                >
-                                    보통
-                                </button>
-                                <button
-                                    onClick={() => handleDifficultyChange('hard')}
-                                    className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap ${
-                                        difficulty === 'hard'
-                                            ? 'bg-white text-primary shadow-sm'
-                                            : 'text-white/80 hover:text-white'
-                                    }`}
-                                >
-                                    어려움
-                                </button>
+                            <div className="relative">
+                                <div className="bg-white/20 backdrop-blur-sm rounded-full p-1 flex items-center gap-1 flex-shrink-0">
+                                    <button
+                                        onClick={() => handleDifficultyChange('easy')}
+                                        className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap ${
+                                            difficulty === 'easy'
+                                                ? 'bg-white text-primary shadow-sm'
+                                                : 'text-white/80 hover:text-white'
+                                        }`}
+                                    >
+                                        쉬움
+                                    </button>
+                                    <button
+                                        onClick={() => handleDifficultyChange('normal')}
+                                        className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap ${
+                                            difficulty === 'normal'
+                                                ? 'bg-white text-primary shadow-sm'
+                                                : 'text-white/80 hover:text-white'
+                                        }`}
+                                    >
+                                        보통
+                                    </button>
+                                    <button
+                                        onClick={() => handleDifficultyChange('hard')}
+                                        className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap ${
+                                            difficulty === 'hard'
+                                                ? 'bg-white text-primary shadow-sm'
+                                                : 'text-white/80 hover:text-white'
+                                        }`}
+                                    >
+                                        어려움
+                                    </button>
+                                </div>
+                                
+                                {/* 난이도 설명 툴팁 */}
+                                <AnimatePresence>
+                                    {showDifficultyTooltip && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: 10 }}
+                                            transition={{ duration: 0.2 }}
+                                            className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-white rounded-lg shadow-lg px-3 py-2 flex items-center gap-2 whitespace-nowrap z-50"
+                                        >
+                                            <Info className="text-primary" size={16} />
+                                            <span className="text-sm font-bold text-gray-800">
+                                                {difficulty === 'easy' && '쉬움: 3~4글자'}
+                                                {difficulty === 'normal' && '보통: 5글자'}
+                                                {difficulty === 'hard' && '어려움: 6글자 이상'}
+                                            </span>
+                                            <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-white rotate-45"></div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
                             </div>
                         </div>
                     </motion.div>

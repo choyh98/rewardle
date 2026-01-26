@@ -5,10 +5,8 @@ import type { Brand } from '../../data/brands';
 import { usePoints } from '../../context/PointsContext';
 import { DECOY_CHARS } from '../../data/constants';
 import { getInitialConsonants } from '../../lib/hangulUtils';
-import { WordleHelpModal } from './wordle/WordleHelpModal';
-import { WordleSuccessModal } from './wordle/WordleSuccessModal';
-import { WordleMissionModal } from './wordle/WordleMissionModal';
-import { WordleFailModal } from './wordle/WordleFailModal';
+import { WordleHelpModal, WordleResultModal, WordleMissionModal } from './wordle/WordleModals';
+import { WalkingMissionPage } from '../common';
 
 const MaterialSymbolsHelpRounded = () => (
     <svg className="size-full" viewBox="0 0 48 48" fill="none">
@@ -356,44 +354,61 @@ const WordleGame: React.FC<WordleGameProps> = ({ brand, onComplete, onBack, onDe
             </div>
 
             {/* Help modal */}
-            {showHelp && <WordleHelpModal onClose={() => setShowHelp(false)} />}
+            {showHelp && <WordleHelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />}
 
-            {/* Success modal */}
+            {/* Result modal (Success or Failed) */}
             {gameState === 'won' && !showMission && (
-                <WordleSuccessModal
-                    onStartMission={() => setShowMission(true)}
-                    onGoHome={() => {
+                <WordleResultModal
+                    gameState="won"
+                    onMission={() => setShowMission(true)}
+                    onHome={() => {
                         onDeductPlay();
                         onBack();
                     }}
                 />
             )}
 
-            {/* Mission modal */}
-            {showMission && (
+            {gameState === 'lost' && (
+                <WordleResultModal
+                    gameState="lost"
+                    onRetry={() => {
+                        onDeductPlay();
+                        window.location.reload();
+                    }}
+                    onHome={() => {
+                        onDeductPlay();
+                        onBack();
+                    }}
+                />
+            )}
+
+            {/* Mission modal or Walking Mission Page */}
+            {showMission && brand.mission?.type === 'walking' && brand.mission.walking && (
+                <WalkingMissionPage
+                    walkingData={brand.mission.walking}
+                    storeName={brand.name}
+                    storeImage={brand.hintImage}
+                    placeUrl={brand.placeUrl}
+                    bonusPoints={brand.mission.bonusPoints}
+                    onBack={() => {
+                        onDeductPlay();
+                        onBack();
+                    }}
+                    onSuccess={() => {
+                        addPoints(brand.mission!.bonusPoints, `${brand.name} 워들 도보 미션 완료`);
+                    }}
+                />
+            )}
+
+            {showMission && (!brand.mission || brand.mission.type === 'quiz') && (
                 <WordleMissionModal
                     question={brand.placeQuiz.question}
                     placeUrl={brand.placeUrl}
-                    bonusPoints={5}
                     onHome={() => {
                         onDeductPlay();
                         onBack();
                     }}
                     onSubmit={handleMissionSubmit}
-                />
-            )}
-
-            {/* Failed modal */}
-            {gameState === 'lost' && (
-                <WordleFailModal
-                    onRetry={() => {
-                        onDeductPlay();
-                        window.location.reload();
-                    }}
-                    onGoHome={() => {
-                        onDeductPlay();
-                        onBack();
-                    }}
                 />
             )}
         </div>

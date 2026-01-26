@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Save, Store, HelpCircle, Link as LinkIcon, Lock, Image } from 'lucide-react';
+import { ArrowLeft, Save, Store, HelpCircle, Link as LinkIcon, Lock, Image, Sparkles, Map, ExternalLink, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { invalidateBrandsCache } from '../data/brands';
 import guideImage from '../assets/guide.png';
+import { analyzePlaceWithAI, getNaverSearchUrl } from '../services/aiMissionService';
+import type { AIAnalysisResult } from '../types';
 
 const AdminDashboard: React.FC = () => {
     const navigate = useNavigate();
@@ -20,11 +22,26 @@ const AdminDashboard: React.FC = () => {
         hintImage: '',
         question: '',
         answer: '',
-        placeUrl: ''
+        placeUrl: '',
+        address: '' // AI 분석용
     });
     const [useNameForWordle, setUseNameForWordle] = useState(false);
     const [useNameForApple, setUseNameForApple] = useState(false);
     const [useNameForShooting, setUseNameForShooting] = useState(false);
+
+    // AI 미션 관련 상태
+    const [missionType, setMissionType] = useState<'quiz' | 'walking'>('quiz');
+    const [isAILoading, setIsAILoading] = useState(false);
+    const [aiResult, setAiResult] = useState<AIAnalysisResult | null>(null);
+    const [selectedKeywordIndex, setSelectedKeywordIndex] = useState<number>(0);
+    const [walkingMission, setWalkingMission] = useState({
+        seoKeyword: '',
+        startPoint: '',
+        walkingTime: '',
+        bicycleTime: '',
+        quizQuestion: '',
+        correctAnswer: ''
+    });
 
     const handlePasswordSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -35,6 +52,53 @@ const AdminDashboard: React.FC = () => {
             setError('비밀번호가 올바르지 않습니다.');
             setPassword('');
         }
+    };
+
+    // AI 분석 실행
+    const handleAIAnalyze = async () => {
+        if (!newBrand.name) {
+            alert('매장명을 먼저 입력해주세요!');
+            return;
+        }
+
+        setIsAILoading(true);
+        setAiResult(null);
+
+        try {
+            const result = await analyzePlaceWithAI({
+                storeName: newBrand.name,
+                address: newBrand.address
+            });
+
+            setAiResult(result);
+            setSelectedKeywordIndex(0);
+
+            // 첫 번째 키워드를 기본값으로 설정
+            const firstKeyword = result.seo_strategy.target_keywords[0];
+            setWalkingMission({
+                seoKeyword: firstKeyword,
+                startPoint: result.user_mission.start_point,
+                walkingTime: result.user_mission.correct_answer,
+                bicycleTime: '', // 관리자가 직접 입력
+                quizQuestion: result.user_mission.quiz_question,
+                correctAnswer: result.user_mission.correct_answer
+            });
+        } catch (error: any) {
+            console.error('AI 분석 실패:', error);
+            alert(`AI 분석에 실패했습니다.\n${error.message || '다시 시도해주세요.'}`);
+        } finally {
+            setIsAILoading(false);
+        }
+    };
+
+    // 키워드 선택
+    const handleSelectKeyword = (index: number) => {
+        if (!aiResult) return;
+        setSelectedKeywordIndex(index);
+        setWalkingMission({
+            ...walkingMission,
+            seoKeyword: aiResult.seo_strategy.target_keywords[index]
+        });
     };
 
     const handleSave = async () => {
@@ -51,14 +115,56 @@ const AdminDashboard: React.FC = () => {
             alert('슈팅워들 정답은 최소 3글자 이상이어야 합니다.');
             return;
         }
-        if (!newBrand.name || !newBrand.question || !newBrand.answer || !newBrand.placeUrl) {
-            alert('모든 필수 항목을 입력해주세요.\n(사진은 선택사항입니다)');
+        if (!newBrand.name) {
+            alert('매장명은 필수입니다.');
             return;
+        }
+
+        // 미션 타입별 유효성 검사
+        if (missionType === 'quiz') {
+            if (!newBrand.question || !newBrand.answer) {
+                alert('퀴즈 미션의 질문과 정답을 입력해주세요.');
+                return;
+            }
+            if (!newBrand.placeUrl) {
+                alert('퀴즈 미션은 플레이스 URL이 필수입니다.');
+                return;
+            }
+        }
+        if (missionType === 'walking') {
+            if (!walkingMission.seoKeyword || !walkingMission.startPoint) {
+                alert('길찾기 미션 정보가 부족합니다. AI 분석을 먼저 실행해주세요.');
+                return;
+            }
         }
 
         try {
             // 워들 정답을 배열로 변환 (각 글자를 분리)
             const wordleAnswerArray = newBrand.wordleAnswer.split('');
+
+            // mission_data 구성
+            let missionData: any = {
+                type: missionType,
+                bonusPoints: missionType === 'quiz' ? 5 : 20
+            };
+
+            if (missionType === 'quiz') {
+                missionData.quiz = {
+                    question: newBrand.question,
+                    answer: newBrand.answer,
+                    bonusPoints: 5
+                };
+            } else if (missionType === 'walking') {
+                missionData.walking = {
+                    seoKeyword: walkingMission.seoKeyword,
+                    startPoint: walkingMission.startPoint,
+                    walkingTime: walkingMission.walkingTime,
+                    bicycleTime: walkingMission.bicycleTime,
+                    quizQuestion: walkingMission.quizQuestion,
+                    correctAnswer: walkingMission.correctAnswer,
+                    storeAddress: aiResult?.actual_address || newBrand.address
+                };
+            }
 
             // Supabase에 데이터 저장
             const { data, error } = await supabase
@@ -69,10 +175,12 @@ const AdminDashboard: React.FC = () => {
                         wordle_answer: wordleAnswerArray,
                         apple_game_word: newBrand.appleGameWord,
                         shooting_wordle_answer: newBrand.shootingWordleAnswer,
-                        hint_image: newBrand.hintImage || null, // 사진 선택사항으로
-                        place_quiz_question: newBrand.question,
-                        place_quiz_answer: newBrand.answer,
+                        hint_image: newBrand.hintImage || null,
+                        place_quiz_question: newBrand.question || null, // 레거시 호환
+                        place_quiz_answer: newBrand.answer || null, // 레거시 호환
                         place_url: newBrand.placeUrl,
+                        mission_type: missionType,
+                        mission_data: missionData,
                         is_active: true
                     }
                 ])
@@ -89,7 +197,7 @@ const AdminDashboard: React.FC = () => {
             // 캐시 무효화
             invalidateBrandsCache();
 
-            alert('✅ 새로운 퀴즈가 성공적으로 등록되었습니다!\n이제 사용자들이 이 매장의 게임을 플레이할 수 있습니다.');
+            alert('새로운 퀴즈가 성공적으로 등록되었습니다!\n이제 사용자들이 이 매장의 게임을 플레이할 수 있습니다.');
 
             // 폼 초기화
             setNewBrand({
@@ -100,7 +208,17 @@ const AdminDashboard: React.FC = () => {
                 hintImage: '',
                 question: '',
                 answer: '',
-                placeUrl: ''
+                placeUrl: '',
+                address: ''
+            });
+            setAiResult(null);
+            setWalkingMission({
+                seoKeyword: '',
+                startPoint: '',
+                walkingTime: '',
+                bicycleTime: '',
+                quizQuestion: '',
+                correctAnswer: ''
             });
         } catch (error) {
             console.error('Failed to save brand:', error);
@@ -272,7 +390,7 @@ const AdminDashboard: React.FC = () => {
                         <div>
                             <div className="flex items-center justify-between mb-2">
                                 <label className="text-sm font-black text-gray-700 flex items-center gap-2">
-                                    🎯 슈팅워들 정답
+                                    슈팅워들 정답
                                 </label>
                                 <label className="flex items-center gap-2 cursor-pointer">
                                     <input
@@ -348,48 +466,214 @@ const AdminDashboard: React.FC = () => {
                         </div>
 
                         <div className="pt-4 border-t border-gray-100">
-                            <label className="block text-sm font-black text-gray-700 mb-2">추가 미션 (플레이스 퀴즈)</label>
-                            <input
-                                type="text"
-                                placeholder="질문: 예) 이 매장의 아메리카노 가격은?"
-                                className="w-full h-14 bg-gray-50 border-transparent rounded-2xl px-5 mb-3 focus:bg-white focus:border-primary focus:outline-none transition-all font-medium"
-                                value={newBrand.question}
-                                onChange={e => setNewBrand({ ...newBrand, question: e.target.value })}
-                            />
-                            <input
-                                type="text"
-                                placeholder="정답: 예) 4500"
-                                className="w-full h-14 bg-gray-50 border-transparent rounded-2xl px-5 focus:bg-white focus:border-primary focus:outline-none transition-all font-medium"
-                                value={newBrand.answer}
-                                onChange={e => setNewBrand({ ...newBrand, answer: e.target.value })}
-                            />
+                            <label className="block text-sm font-black text-gray-700 mb-3">추가 미션 설정</label>
+                            
+                            {/* 미션 타입 선택 */}
+                            <div className="flex gap-3 mb-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setMissionType('quiz')}
+                                    className={`flex-1 h-12 rounded-xl font-bold text-sm transition-all ${
+                                        missionType === 'quiz'
+                                            ? 'bg-primary text-white shadow-md'
+                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                    }`}
+                                >
+                                    💬 퀴즈 미션
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setMissionType('walking')}
+                                    className={`flex-1 h-12 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+                                        missionType === 'walking'
+                                            ? 'bg-primary text-white shadow-md'
+                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                    }`}
+                                >
+                                    <Map size={16} /> 길찾기 미션 (AI)
+                                </button>
+                            </div>
+
+                            {/* 퀴즈 미션 폼 */}
+                            {missionType === 'quiz' && (
+                                <div className="space-y-3">
+                                    <input
+                                        type="text"
+                                        placeholder="질문: 예) 이 매장의 아메리카노 가격은?"
+                                        className="w-full h-14 bg-gray-50 border-transparent rounded-2xl px-5 focus:bg-white focus:border-primary focus:outline-none transition-all font-medium"
+                                        value={newBrand.question}
+                                        onChange={e => setNewBrand({ ...newBrand, question: e.target.value })}
+                                    />
+                                    <input
+                                        type="text"
+                                        placeholder="정답: 예) 4500"
+                                        className="w-full h-14 bg-gray-50 border-transparent rounded-2xl px-5 focus:bg-white focus:border-primary focus:outline-none transition-all font-medium"
+                                        value={newBrand.answer}
+                                        onChange={e => setNewBrand({ ...newBrand, answer: e.target.value })}
+                                    />
+                                </div>
+                            )}
+
+                            {/* 길찾기 미션 폼 (AI 기반) */}
+                            {missionType === 'walking' && (
+                                <div className="space-y-4">
+                                    {/* 주소 입력 (선택) */}
+                                    <input
+                                        type="text"
+                                        placeholder="주소 (선택): 예) 송파구, 강남구"
+                                        className="w-full h-14 bg-gray-50 border-transparent rounded-2xl px-5 focus:bg-white focus:border-primary focus:outline-none transition-all font-medium"
+                                        value={newBrand.address}
+                                        onChange={e => setNewBrand({ ...newBrand, address: e.target.value })}
+                                    />
+
+                                    {/* AI 분석 버튼 */}
+                                    <button
+                                        type="button"
+                                        onClick={handleAIAnalyze}
+                                        disabled={isAILoading || !newBrand.name}
+                                        className="w-full h-14 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-black rounded-2xl flex items-center justify-center gap-2 hover:shadow-lg active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {isAILoading ? (
+                                            <>
+                                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                AI 분석 중...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Sparkles size={20} /> AI로 길찾기 미션 생성하기
+                                            </>
+                                        )}
+                                    </button>
+
+                                    {/* AI 분석 결과 */}
+                                    {aiResult && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-5 border-2 border-purple-200 space-y-4"
+                                        >
+                                            {/* 매장 분석 */}
+                                            <div>
+                                                <h4 className="text-sm font-black text-gray-800 mb-2 flex items-center gap-2">
+                                                    <Sparkles size={14} className="text-purple-500" /> AI 매장 분석
+                                                </h4>
+                                                <p className="text-xs text-gray-600 leading-relaxed">
+                                                    {aiResult.store_analysis.summary}
+                                                </p>
+                                            </div>
+
+                                            {/* 키워드 후보 선택 */}
+                                            <div>
+                                                <h4 className="text-sm font-black text-gray-800 mb-2">
+                                                    SEO 키워드 후보 (지도 노출 보장)
+                                                </h4>
+                                                <div className="space-y-2">
+                                                    {aiResult.seo_strategy.target_keywords.map((keyword, idx) => (
+                                                        <div
+                                                            key={idx}
+                                                            className={`flex items-center justify-between p-3 rounded-xl border-2 transition-all cursor-pointer ${
+                                                                selectedKeywordIndex === idx
+                                                                    ? 'bg-white border-purple-400 shadow-sm'
+                                                                    : 'bg-white/50 border-transparent hover:border-purple-200'
+                                                            }`}
+                                                            onClick={() => handleSelectKeyword(idx)}
+                                                        >
+                                                            <div className="flex items-center gap-2 flex-1">
+                                                                {selectedKeywordIndex === idx && (
+                                                                    <CheckCircle2 size={16} className="text-purple-500" />
+                                                                )}
+                                                                <span className="text-sm font-bold text-gray-800">{keyword}</span>
+                                                            </div>
+                                                            <a
+                                                                href={getNaverSearchUrl(keyword)}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                                className="text-xs text-purple-500 hover:text-purple-600 font-bold flex items-center gap-1"
+                                                            >
+                                                                네이버 확인 <ExternalLink size={12} />
+                                                            </a>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {/* 출발지 & 도보/자전거 시간 입력 */}
+                                            <div className="space-y-3">
+                                                <div>
+                                                    <label className="text-xs font-bold text-gray-700 mb-1 block">출발지</label>
+                                                    <input
+                                                        type="text"
+                                                        value={walkingMission.startPoint}
+                                                        onChange={(e) => setWalkingMission({ ...walkingMission, startPoint: e.target.value })}
+                                                        placeholder="예: 한성대입구역 6번출구"
+                                                        className="w-full h-12 bg-white border-2 border-purple-200 rounded-xl px-4 text-sm font-semibold focus:border-purple-400 focus:outline-none"
+                                                    />
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div>
+                                                        <label className="text-xs font-bold text-gray-700 mb-1 block">도보 시간</label>
+                                                        <input
+                                                            type="text"
+                                                            value={walkingMission.walkingTime}
+                                                            onChange={(e) => setWalkingMission({ ...walkingMission, walkingTime: e.target.value })}
+                                                            placeholder="예: 8분"
+                                                            className="w-full h-12 bg-white border-2 border-purple-200 rounded-xl px-4 text-sm font-semibold focus:border-purple-400 focus:outline-none"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-xs font-bold text-gray-700 mb-1 block">자전거 시간</label>
+                                                        <input
+                                                            type="text"
+                                                            value={walkingMission.bicycleTime}
+                                                            onChange={(e) => setWalkingMission({ ...walkingMission, bicycleTime: e.target.value })}
+                                                            placeholder="예: 4분"
+                                                            className="w-full h-12 bg-white border-2 border-purple-200 rounded-xl px-4 text-sm font-semibold focus:border-purple-400 focus:outline-none"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* AI 근거 */}
+                                            <div className="bg-white/70 rounded-xl p-3">
+                                                <p className="text-xs text-gray-500 leading-relaxed">
+                                                    <strong className="text-gray-700">AI 근거:</strong> {aiResult.reasoning}
+                                                </p>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-black text-gray-700 mb-2 flex items-center gap-2">
-                                <LinkIcon size={16} className="text-primary" /> 플레이스 URL
-                            </label>
-                            <input
-                                type="text"
-                                placeholder="https://m.place.naver.com/..."
-                                className="w-full h-14 bg-gray-50 border-transparent rounded-2xl px-5 focus:bg-white focus:border-primary focus:outline-none transition-all font-medium text-sm"
-                                value={newBrand.placeUrl}
-                                onChange={e => setNewBrand({ ...newBrand, placeUrl: e.target.value })}
-                            />
-                            <p className="text-xs text-gray-500 mt-2 font-medium">
-                                📍 네이버지도 <span className="text-primary font-bold">"공유하기"</span> 링크로 복붙해 주세요
-                            </p>
-                            
-                            {/* 가이드 이미지 */}
-                            <div className="mt-3 bg-gray-50 rounded-xl p-4 border border-gray-200">
-                                <p className="text-xs font-bold text-gray-700 mb-2">📖 가이드</p>
-                                <img 
-                                    src={guideImage} 
-                                    alt="플레이스 URL 복사 가이드" 
-                                    className="w-full rounded-lg border border-gray-300"
+                        {/* 플레이스 URL - 퀴즈 미션일 때만 표시 */}
+                        {missionType === 'quiz' && (
+                            <div>
+                                <label className="block text-sm font-black text-gray-700 mb-2 flex items-center gap-2">
+                                    <LinkIcon size={16} className="text-primary" /> 플레이스 URL
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder="https://m.place.naver.com/..."
+                                    className="w-full h-14 bg-gray-50 border-transparent rounded-2xl px-5 focus:bg-white focus:border-primary focus:outline-none transition-all font-medium text-sm"
+                                    value={newBrand.placeUrl}
+                                    onChange={e => setNewBrand({ ...newBrand, placeUrl: e.target.value })}
                                 />
+                                <p className="text-xs text-gray-500 mt-2 font-medium">
+                                    네이버지도 <span className="text-primary font-bold">"공유하기"</span> 링크로 복붙해 주세요
+                                </p>
+                                
+                                {/* 가이드 이미지 */}
+                                <div className="mt-3 bg-gray-50 rounded-xl p-4 border border-gray-200">
+                                    <p className="text-xs font-bold text-gray-700 mb-2">가이드</p>
+                                    <img 
+                                        src={guideImage} 
+                                        alt="플레이스 URL 복사 가이드" 
+                                        className="w-full rounded-lg border border-gray-300"
+                                    />
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         <button
                             onClick={handleSave}

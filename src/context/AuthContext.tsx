@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { pointsService } from '../lib/services';
+import { pointService } from '../services/pointService';
+import { STORAGE_KEYS } from '../data/constants';
 import type { User } from '../types';
 
 interface AuthContextType {
@@ -20,7 +21,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // 게스트 포인트 마이그레이션 함수
     const migrateGuestData = async (newUserId: string) => {
-        const guestPoints = localStorage.getItem('rewardle_points');
+        const guestPoints = localStorage.getItem(STORAGE_KEYS.POINTS);
         if (!guestPoints || parseInt(guestPoints) === 0) {
             console.log('마이그레이션할 포인트 없음');
             return;
@@ -30,7 +31,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('게스트 데이터 마이그레이션 시작...');
 
         try {
-            const result = await pointsService.migrateGuestPoints(newUserId);
+            const result = await pointService.migrateGuestPoints(newUserId);
             if (result.success) {
                 setMigratedPoints(result.migratedPoints);
                 setMigrationStatus('completed');
@@ -61,10 +62,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     });
                 } else {
                     // 게스트 사용자
-                    let guestId = localStorage.getItem('rewardle_guest_id');
+                    let guestId = localStorage.getItem(STORAGE_KEYS.GUEST_ID);
                     if (!guestId) {
                         guestId = `guest_${Date.now()}`;
-                        localStorage.setItem('rewardle_guest_id', guestId);
+                        localStorage.setItem(STORAGE_KEYS.GUEST_ID, guestId);
                     }
                     setUser({
                         id: guestId,
@@ -74,10 +75,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             } catch (error) {
                 console.error('Failed to initialize auth:', error);
                 // 폴백: 게스트 사용자
-                let guestId = localStorage.getItem('rewardle_guest_id');
+                let guestId = localStorage.getItem(STORAGE_KEYS.GUEST_ID);
                 if (!guestId) {
                     guestId = `guest_${Date.now()}`;
-                    localStorage.setItem('rewardle_guest_id', guestId);
+                    localStorage.setItem(STORAGE_KEYS.GUEST_ID, guestId);
                 }
                 setUser({
                     id: guestId,
