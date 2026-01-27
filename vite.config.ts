@@ -18,8 +18,6 @@ export default defineConfig({
           'supabase': ['@supabase/supabase-js'],
           // Lucide 아이콘을 별도 청크로 분리
           'icons': ['lucide-react'],
-          // Google AI를 별도 청크로 분리
-          'ai': ['@google/generative-ai'],
         },
       },
     },
