@@ -87,14 +87,38 @@ export const pointService = {
             const pointsToMigrate = parseInt(guestPoints);
             console.log('게스트 포인트 마이그레이션 시작:', { pointsToMigrate, newUserId });
 
-            // 2. RPC 함수로 로그인 계정에 포인트 추가
+            // 2. 이미 회원가입된 사용자인지 확인 (user_points 테이블 존재 여부)
+            const { data: existingUser, error: checkError } = await supabase
+                .from('user_points')
+                .select('points, created_at')
+                .eq('user_id', newUserId)
+                .maybeSingle();
+
+            if (checkError) {
+                console.error('사용자 확인 중 오류:', checkError);
+                throw checkError;
+            }
+
+            // 이미 회원가입된 사용자라면 게스트 포인트 버리기
+            if (existingUser) {
+                console.log('이미 회원가입된 사용자입니다. 게스트 포인트는 마이그레이션하지 않습니다.');
+                
+                // localStorage만 정리
+                localStorage.removeItem(STORAGE_KEYS.POINTS);
+                localStorage.removeItem(STORAGE_KEYS.HISTORY);
+                localStorage.removeItem(STORAGE_KEYS.GUEST_ID);
+                
+                return { migratedPoints: 0, success: true };
+            }
+
+            // 3. 신규 사용자라면 RPC 함수로 로그인 계정에 포인트 추가
             await this.addPoints(
                 newUserId,
                 pointsToMigrate,
                 '게스트 모드에서 획득한 포인트 이전'
             );
 
-            // 3. localStorage 정리
+            // 4. localStorage 정리
             localStorage.removeItem(STORAGE_KEYS.POINTS);
             localStorage.removeItem(STORAGE_KEYS.HISTORY);
             localStorage.removeItem(STORAGE_KEYS.GUEST_ID);
