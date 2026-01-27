@@ -23,14 +23,6 @@ export default defineConfig({
     },
     // 청크 크기 경고 임계값 조정 (KB)
     chunkSizeWarningLimit: 1000,
-    // 압축 최적화
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true, // 프로덕션에서 console.log 제거
-        drop_debugger: true,
-      },
-    },
     // CSS 코드 스플리팅
     cssCodeSplit: true,
     // Source map 비활성화 (프로덕션)
