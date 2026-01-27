@@ -204,7 +204,7 @@ ${contactForm.message}
                     >
                         <h2 className="text-4xl font-black text-white leading-tight drop-shadow-md">
                             매일 플레이 하고<br />
-                            포인트 받기
+                            포인트를 모아보세요!
                         </h2>
   
                         {/* 일일 게임 횟수 및 난이도 선택 */}

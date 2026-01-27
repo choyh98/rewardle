@@ -72,7 +72,7 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
     const { addPoints } = usePoints(); // Context에서 직접 addPoints 가져오기
     const [grid, setGrid] = useState<Cell[][]>([]);
     const [score, setScore] = useState(0);
-    const [timeLeft, setTimeLeft] = useState(120);
+    const [timeLeft, setTimeLeft] = useState(60);
     const [collectedSyllables, setCollectedSyllables] = useState<string[]>([]);
     const [selection, setSelection] = useState<Cell[]>([]);
     const [startCell, setStartCell] = useState<Cell | null>(null);
@@ -431,7 +431,7 @@ const GameScreen: React.FC<AppleGameProps & { onShowHelp: () => void }> = ({ bra
         return correct;
     };
 
-    const progress = ((120 - timeLeft) / 120) * 100;
+    const progress = ((60 - timeLeft) / 60) * 100;
 
     return (
         <div className="flex flex-col h-screen bg-gradient-to-b from-[#f5e6d3] to-[#ffcccb] overflow-hidden relative touch-none" onMouseUp={handleEnd} onTouchEnd={handleEnd} onTouchMove={handleTouchMove}>

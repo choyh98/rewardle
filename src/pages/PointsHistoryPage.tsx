@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Award, Gift } from 'lucide-react';
+import { ArrowLeft, Award, Gift, ChevronLeft, ChevronRight } from 'lucide-react';
 import { usePoints } from '../context/PointsContext';
 import { useAuth } from '../context/AuthContext';
 import { createExchange } from '../services/exchangeService';
@@ -14,6 +14,14 @@ const PointsHistoryPage: React.FC = () => {
     const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+
+    // 페이지네이션 계산
+    const totalPages = Math.ceil(history.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const currentHistory = history.slice(startIndex, endIndex);
 
     return (
         <div className="flex flex-col min-h-screen bg-[#fafafa]">
@@ -50,10 +58,18 @@ const PointsHistoryPage: React.FC = () => {
 
                 {/* History List */}
                 <div className="space-y-4">
-                    <h3 className="text-lg font-black text-gray-800 mb-4">최근 적립 내역</h3>
-                    {history.map((item, idx) => (
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-black text-gray-800">최근 적립 내역</h3>
+                        {history.length > 0 && (
+                            <p className="text-sm text-gray-500 font-medium">
+                                총 {history.length}개
+                            </p>
+                        )}
+                    </div>
+                    
+                    {currentHistory.map((item, idx) => (
                         <motion.div
-                            key={idx}
+                            key={startIndex + idx}
                             initial={{ opacity: 0, x: -10 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: idx * 0.05 }}
@@ -78,6 +94,51 @@ const PointsHistoryPage: React.FC = () => {
                         <div className="text-center py-20">
                             <p className="text-gray-400 font-bold">적립 내역이 없습니다.</p>
                             <p className="text-gray-400 text-sm mt-1">게임을 플레이하고 포인트를 쌓아보세요!</p>
+                        </div>
+                    )}
+
+                    {/* 페이지네이션 */}
+                    {totalPages > 1 && (
+                        <div className="flex items-center justify-center gap-2 mt-8 pb-4">
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                disabled={currentPage === 1}
+                                className={`p-2 rounded-lg transition-colors ${
+                                    currentPage === 1
+                                        ? 'text-gray-300 cursor-not-allowed'
+                                        : 'text-gray-600 hover:bg-gray-100 active:scale-95'
+                                }`}
+                            >
+                                <ChevronLeft size={20} />
+                            </button>
+
+                            <div className="flex items-center gap-1">
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                    <button
+                                        key={page}
+                                        onClick={() => setCurrentPage(page)}
+                                        className={`min-w-[36px] h-9 rounded-lg font-bold text-sm transition-all ${
+                                            currentPage === page
+                                                ? 'bg-primary text-white'
+                                                : 'text-gray-600 hover:bg-gray-100 active:scale-95'
+                                        }`}
+                                    >
+                                        {page}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                disabled={currentPage === totalPages}
+                                className={`p-2 rounded-lg transition-colors ${
+                                    currentPage === totalPages
+                                        ? 'text-gray-300 cursor-not-allowed'
+                                        : 'text-gray-600 hover:bg-gray-100 active:scale-95'
+                                }`}
+                            >
+                                <ChevronRight size={20} />
+                            </button>
                         </div>
                     )}
                 </div>

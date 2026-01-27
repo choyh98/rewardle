@@ -7,8 +7,25 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="theme-color" content="#FF6B6B" />
+    
+    <!-- 성능 최적화: DNS Prefetch & Preconnect -->
+    <link rel="dns-prefetch" href="https://fastly.jsdelivr.net" />
+    <link rel="preconnect" href="https://fastly.jsdelivr.net" crossorigin />
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+    
+    <!-- 핵심 폰트 프리로드 (Regular, Bold만) -->
+    <link rel="preload" href="https://fastly.jsdelivr.net/gh/Project-Noonnu/noonfonts_2107@1.1/Pretendard-Regular.woff" as="font" type="font/woff" crossorigin />
+    <link rel="preload" href="https://fastly.jsdelivr.net/gh/Project-Noonnu/noonfonts_2107@1.1/Pretendard-Bold.woff" as="font" type="font/woff" crossorigin />
+    
     <title>리워들 - 광고를 플레이하다, 혜택을 획득하다</title>
     <meta name="description" content="간단한 게임으로 포인트를 쌓고 혜택을 받아보세요!" />
+    
+    <!-- Open Graph / SNS 공유 최적화 -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="리워들 - 광고를 플레이하다, 혜택을 획득하다" />
+    <meta property="og:description" content="간단한 게임으로 포인트를 쌓고 혜택을 받아보세요!" />
+    <meta property="og:image" content="/og-image.png" />
   </head>
   <body>
     <div id="root"></div>

@@ -95,7 +95,7 @@ const ShootingWordle: React.FC<ShootingWordleProps> = ({ brand, onComplete, onBa
 
             return {
                 characters,
-                speed: 8 + (idx % 3), // 더욱 느리게! (숫자가 클수록 느려짐)
+                speed: 4 + (idx % 2), // 속도조절
                 delay: -(idx * 0.5) // delay를 줄여서 자연스럽게
             };
         });

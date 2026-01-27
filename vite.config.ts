@@ -16,10 +16,30 @@ export default defineConfig({
           'animation': ['framer-motion'],
           // Supabase를 별도 청크로 분리
           'supabase': ['@supabase/supabase-js'],
+          // Lucide 아이콘을 별도 청크로 분리
+          'icons': ['lucide-react'],
+          // Google AI를 별도 청크로 분리
+          'ai': ['@google/generative-ai'],
         },
       },
     },
     // 청크 크기 경고 임계값 조정 (KB)
     chunkSizeWarningLimit: 1000,
+    // 압축 최적화
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true, // 프로덕션에서 console.log 제거
+        drop_debugger: true,
+      },
+    },
+    // CSS 코드 스플리팅
+    cssCodeSplit: true,
+    // Source map 비활성화 (프로덕션)
+    sourcemap: false,
+  },
+  // 최적화 옵션
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom', 'framer-motion'],
   },
 })

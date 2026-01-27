@@ -131,10 +131,10 @@ export const AppleHelpModal: React.FC<AppleHelpModalProps> = ({ onClose }) => {
                         </div>
                         <div className="flex flex-col gap-2">
                             <h3 className="font-black text-[20px] text-[#333]">
-                                주어진 시간은 120초!
+                                주어진 시간은 60초!
                             </h3>
                             <p className="text-[16px] text-[#666] leading-relaxed">
-                                120초 동안 사과를 제거하여 가장 많은 점수를 얻어보세요.
+                               60초 동안 사과를 제거하고 숨겨진 글자를 모아보세요!
                             </p>
                         </div>
                     </div>

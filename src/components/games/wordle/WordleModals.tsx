@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ExternalLink } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Modal } from '../../ui/Modal';
 import { Button } from '../../ui/Button';
 
@@ -9,19 +10,179 @@ interface HelpModalProps {
 }
 
 export const WordleHelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
+    const [demoStep, setDemoStep] = useState(0);
+    const [demoTiles, setDemoTiles] = useState<Array<{ letter: string; state: 'empty' | 'correct' | 'present' | 'absent' }>>([
+        { letter: '', state: 'empty' },
+        { letter: '', state: 'empty' },
+        { letter: '', state: 'empty' },
+        { letter: '', state: 'empty' },
+        { letter: '', state: 'empty' }
+    ]);
+
+    // 데모 애니메이션 (정답: 아쿠아가든)
+    useEffect(() => {
+        if (!isOpen) {
+            setDemoStep(0);
+            return;
+        }
+
+        const sequence = [
+            // Step 0: 초기 상태
+            () => {
+                setDemoTiles([
+                    { letter: '', state: 'empty' },
+                    { letter: '', state: 'empty' },
+                    { letter: '', state: 'empty' },
+                    { letter: '', state: 'empty' },
+                    { letter: '', state: 'empty' }
+                ]);
+            },
+            // Step 1: 첫 시도 "라면소주" 입력
+            () => {
+                setDemoTiles([
+                    { letter: '라', state: 'empty' },
+                    { letter: '면', state: 'empty' },
+                    { letter: '소', state: 'empty' },
+                    { letter: '주', state: 'empty' },
+                    { letter: '가', state: 'empty' }
+                ]);
+            },
+            // Step 2: 첫 시도 결과 (가만 정답에 포함)
+            () => {
+                setDemoTiles([
+                    { letter: '라', state: 'absent' },
+                    { letter: '면', state: 'absent' },
+                    { letter: '소', state: 'absent' },
+                    { letter: '주', state: 'absent' },
+                    { letter: '가', state: 'present' }
+                ]);
+            },
+            // Step 3: 두 번째 시도 "아쿠바가" 입력
+            () => {
+                setDemoTiles([
+                    { letter: '아', state: 'empty' },
+                    { letter: '쿠', state: 'empty' },
+                    { letter: '바', state: 'empty' },
+                    { letter: '가', state: 'empty' },
+                    { letter: '든', state: 'empty' }
+                ]);
+            },
+            // Step 4: 두 번째 시도 결과
+            () => {
+                setDemoTiles([
+                    { letter: '아', state: 'correct' },
+                    { letter: '쿠', state: 'correct' },
+                    { letter: '바', state: 'absent' },
+                    { letter: '가', state: 'present' },
+                    { letter: '든', state: 'correct' }
+                ]);
+            },
+            // Step 5: 정답 "아쿠아가든" 입력
+            () => {
+                setDemoTiles([
+                    { letter: '아', state: 'empty' },
+                    { letter: '쿠', state: 'empty' },
+                    { letter: '아', state: 'empty' },
+                    { letter: '가', state: 'empty' },
+                    { letter: '든', state: 'empty' }
+                ]);
+            },
+            // Step 6: 정답 결과 (모두 초록색)
+            () => {
+                setDemoTiles([
+                    { letter: '아', state: 'correct' },
+                    { letter: '쿠', state: 'correct' },
+                    { letter: '아', state: 'correct' },
+                    { letter: '가', state: 'correct' },
+                    { letter: '든', state: 'correct' }
+                ]);
+            }
+        ];
+
+        const interval = setInterval(() => {
+            setDemoStep(prev => {
+                const next = (prev + 1) % sequence.length;
+                sequence[next]();
+                return next;
+            });
+        }, 3500); // 2000ms → 3500ms (더 느리게)
+
+        return () => clearInterval(interval);
+    }, [isOpen]);
+
+    const getTileColor = (state: string) => {
+        switch (state) {
+            case 'correct': return 'bg-[#28c52d]';
+            case 'present': return 'bg-[#ff8800]';
+            case 'absent': return 'bg-[#787c7e]';
+            default: return 'bg-[#d4d4d4] border-2 border-[#e5e5e5]';
+        }
+    };
+
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="게임 방법">
             <div className="flex flex-col gap-[24px] text-left">
+                {/* 실제 게임 예시 애니메이션 */}
+                <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-[16px] p-6">
+                    <p className="font-bold text-[16px] text-[#121212] mb-4 text-center">
+                        실제 게임 예시
+                    </p>
+                    <p className="text-[13px] text-[#737373] mb-4 text-center">
+                        정답: "아쿠아가든" (5글자 가게명)
+                    </p>
+                    
+                    <div className="flex justify-center gap-2 mb-4">
+                        <AnimatePresence mode="wait">
+                            {demoTiles.map((tile, index) => (
+                                <motion.div
+                                    key={`${demoStep}-${index}`}
+                                    initial={{ scale: 0.8, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    exit={{ scale: 0.8, opacity: 0 }}
+                                    transition={{ delay: index * 0.1 }}
+                                    className={`size-[50px] rounded-[8px] flex items-center justify-center ${getTileColor(tile.state)} transition-colors duration-300`}
+                                >
+                                    <span className={`font-bold text-[24px] ${tile.state === 'empty' ? 'text-[#999]' : 'text-white'}`}>
+                                        {tile.letter || '?'}
+                                    </span>
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
+                    </div>
+
+                    <div className="text-center">
+                        <p className="text-[12px] text-[#999] mb-2">
+                            {demoStep === 0 && '게임 시작! 가게명을 추측해보세요'}
+                            {demoStep === 1 && '1번째 시도: "라면소주가" 입력 중...'}
+                            {demoStep === 2 && '"가"는 정답에 포함되지만 위치가 틀려요!'}
+                            {demoStep === 3 && '2번째 시도: "아쿠바가든" 입력 중...'}
+                            {demoStep === 4 && '"아", "쿠", "든"은 위치가 정확해요!'}
+                            {demoStep === 5 && '3번째 시도: "아쿠아가든" 입력 중...'}
+                            {demoStep === 6 && '🎉 정답입니다! 모두 초록색!'}
+                        </p>
+                        <div className="flex justify-center gap-1 mt-2">
+                            {[0, 1, 2, 3, 4, 5, 6].map((step) => (
+                                <div
+                                    key={step}
+                                    className={`w-2 h-2 rounded-full transition-colors ${
+                                        demoStep === step ? 'bg-[#ff6b6b]' : 'bg-[#d4d4d4]'
+                                    }`}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
                 <div className="flex gap-[12px]">
                     <div className="bg-[#d4d4d4] rounded-full size-[36px] shrink-0 flex items-center justify-center">
                         <span className="font-bold text-[18px] text-[#121212]">1</span>
                     </div>
                     <div className="flex-1">
                         <p className="font-bold text-[18px] text-[#121212] mb-[8px]">
-                            숨겨진 가게명을 맞춰보세요!
+                            숨겨진 가게 이름을 맞히고 포인트를 받으세요.
                         </p>
                         <p className="font-normal text-[14px] text-[#737373]">
-                            6번의 기회 안에 정답을 맞추면 5포인트를 받을 수 있어요.
+                           총 6번의 기회가 주어집니다. 정답을 맞히는 순간 5포인트가 즉시 적립돼요!
                         </p>
                     </div>
                 </div>
@@ -44,19 +205,19 @@ export const WordleHelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) =
                                     <div className="bg-[#28c52d] size-[40px] rounded-[4px] flex items-center justify-center">
                                         <span className="font-bold text-[20px] text-white">아</span>
                                     </div>
-                                    <p className="font-normal text-[13px] text-[#121212]">위치와 글자 정확!</p>
+                                    <p className="font-normal text-[13px] text-[#121212]">글자와 위치가 모두 정확해요!</p>
                                 </div>
                                 <div className="flex items-center gap-[8px]">
                                     <div className="bg-[#ff8800] size-[40px] rounded-[4px] flex items-center justify-center">
-                                        <span className="font-bold text-[20px] text-white">쿠</span>
+                                        <span className="font-bold text-[20px] text-white">가</span>
                                     </div>
-                                    <p className="font-normal text-[13px] text-[#121212]">글자는 맞지만 위치 틀림</p>
+                                    <p className="font-normal text-[13px] text-[#121212]">글자는 맞지만, 위치가 달라요.</p>
                                 </div>
                                 <div className="flex items-center gap-[8px]">
                                     <div className="bg-[#787c7e] size-[40px] rounded-[4px] flex items-center justify-center">
-                                        <span className="font-bold text-[20px] text-white">지</span>
+                                        <span className="font-bold text-[20px] text-white">라</span>
                                     </div>
-                                    <p className="font-normal text-[13px] text-[#121212]">답에 포함되지 않음</p>
+                                    <p className="font-normal text-[13px] text-[#121212]">정답에 포함되지 않는 글자예요.</p>
                                 </div>
                             </div>
                         </div>
@@ -69,7 +230,7 @@ export const WordleHelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) =
                     </div>
                     <div className="flex-1">
                         <p className="font-bold text-[18px] text-[#121212] mb-[8px]">
-                            키보드에서 글자를 선택하세요!
+                            키보드에서 글자를 하나씩 선택해 빈칸을 채워주세요.
                         </p>
                         <p className="font-normal text-[14px] text-[#737373]">
                             같은 글자를 여러 번 클릭할 수 있어요. 글자를 모두 입력한 후 확인 버튼을 눌러주세요.

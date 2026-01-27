@@ -60,7 +60,7 @@ export const ShootingWordleHelpModal: React.FC<ShootingWordleHelpModalProps> = (
                                 정확한 타이밍에 발사!
                             </h3>
                             <p className="text-[16px] text-[#666] leading-relaxed">
-                                화면을 클릭하거나 터치하여 대포를 발사하세요. 흐르는 글자 중 정답 글자를 맞춰야 합니다.
+                                화면을 터치하여 대포를 발사하세요. 흐르는 글자 중 정답 글자를 맞춰야 합니다.
                             </p>
                         </div>
                     </div>

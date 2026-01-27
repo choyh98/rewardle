@@ -1,11 +1,21 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, lazy, Suspense } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import WordleGame from '../components/games/WordleGame';
-import AppleGame from '../components/games/AppleGame';
-import ShootingWordle from '../components/games/shootingwordle/ShootingWordle';
 import { getBrandById, markBrandAsCompleted, type Brand } from '../data/brands';
 import { usePoints } from '../context/PointsContext';
 import type { GameType } from '../types';
+
+// 게임 컴포넌트 lazy loading
+const WordleGame = lazy(() => import('../components/games/WordleGame'));
+const AppleGame = lazy(() => import('../components/games/AppleGame'));
+const ShootingWordle = lazy(() => import('../components/games/shootingwordle/ShootingWordle'));
+
+// 로딩 컴포넌트
+const GameLoadingFallback = () => (
+    <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-primary/10 to-primary/5">
+        <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary border-t-transparent mb-4"></div>
+        <p className="text-primary font-bold text-lg">게임 준비 중...</p>
+    </div>
+);
 
 const GamePage: React.FC = () => {
     const { type } = useParams<{ type: string }>();
@@ -68,31 +78,21 @@ const GamePage: React.FC = () => {
     };
 
     if (isLoading || !brand) {
-        return (
-            <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-primary/10 to-primary/5">
-                <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary border-t-transparent mb-4"></div>
-                <p className="text-primary font-bold text-lg">게임 준비 중...</p>
-            </div>
-        );
-    }
-
-    if (type === 'wordle') {
-        return <WordleGame brand={brand} onComplete={handleComplete} onBack={handleBack} onDeductPlay={handleDeductPlay} />;
-    }
-
-    if (type === 'apple') {
-        return <AppleGame brand={brand} onComplete={handleComplete} onBack={handleBack} onDeductPlay={handleDeductPlay} />;
-    }
-
-    if (type === 'shooting') {
-        return <ShootingWordle brand={brand} onComplete={handleComplete} onBack={handleBack} onDeductPlay={handleDeductPlay} />;
+        return <GameLoadingFallback />;
     }
 
     return (
-        <div className="flex flex-col items-center justify-center h-screen bg-gray-50 p-8 text-center">
-            <h2 className="text-xl font-bold mb-4">해당 게임을 찾을 수 없습니다.</h2>
-            <button onClick={handleBack} className="bg-primary text-white px-6 py-3 rounded-xl font-bold touch-manipulation">홈으로 가기</button>
-        </div>
+        <Suspense fallback={<GameLoadingFallback />}>
+            {type === 'wordle' && <WordleGame brand={brand} onComplete={handleComplete} onBack={handleBack} onDeductPlay={handleDeductPlay} />}
+            {type === 'apple' && <AppleGame brand={brand} onComplete={handleComplete} onBack={handleBack} onDeductPlay={handleDeductPlay} />}
+            {type === 'shooting' && <ShootingWordle brand={brand} onComplete={handleComplete} onBack={handleBack} onDeductPlay={handleDeductPlay} />}
+            {!['wordle', 'apple', 'shooting'].includes(type || '') && (
+                <div className="flex flex-col items-center justify-center h-screen bg-gray-50 p-8 text-center">
+                    <h2 className="text-xl font-bold mb-4">해당 게임을 찾을 수 없습니다.</h2>
+                    <button onClick={handleBack} className="bg-primary text-white px-6 py-3 rounded-xl font-bold touch-manipulation">홈으로 가기</button>
+                </div>
+            )}
+        </Suspense>
     );
 };
 

@@ -33,6 +33,14 @@
   font-display: swap;
 }
 
+/* 폰트 프리로드 힌트 추가 */
+@layer base {
+  /* 가장 자주 사용하는 Regular, Bold만 프리로드 */
+  link[rel="preload"][as="font"] {
+    font-display: swap;
+  }
+}
+
 @theme {
   --color-primary: #FF6B6B;
   --color-primary-dark: #ff5252;
