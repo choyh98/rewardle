@@ -89,17 +89,25 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (!user || user.isGuest) return;
 
         try {
+            console.log('=== Supabase 데이터 로드 시작 ===');
+            
             const userPoints = await pointService.getUserPoints(user.id);
             console.log('DB에서 로드한 포인트:', userPoints);
             setPoints(userPoints);
 
             const historyData = await pointService.getPointHistory(user.id);
+            console.log('DB에서 로드한 히스토리:', historyData.length, '개');
             setHistory(historyData);
 
+            console.log('오늘의 게임 플레이 조회 시작...');
             const gameData = await gameService.getTodayGamePlays(user.id);
+            console.log('오늘의 게임 플레이 조회 완료:', gameData);
+            
             const todayString = new Date().toDateString();
             setDailyGames({ date: todayString, count: gameData.count });
             setGameHistory(gameData.history);
+            
+            console.log('=== Supabase 데이터 로드 완료 ===', { points: userPoints, gameCount: gameData.count });
         } catch (error) {
             console.error('Failed to load from Supabase:', error);
             throw error;

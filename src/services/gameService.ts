@@ -12,6 +12,8 @@ export const gameService = {
     // 오늘의 게임 플레이 내역 가져오기 (로컬 날짜 기준)
     async getTodayGamePlays(userId: string) {
         const startOfToday = getStartOfTodayISO();
+        console.log('getTodayGamePlays 시작:', { userId, startOfToday });
+        
         const { data, error } = await supabase
             .from('game_plays')
             .select('*')
@@ -19,7 +21,12 @@ export const gameService = {
             .gte('created_at', startOfToday)
             .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (error) {
+            console.error('getTodayGamePlays 에러:', error);
+            throw error;
+        }
+
+        console.log('getTodayGamePlays 결과:', { count: data?.length || 0, data });
 
         const todayString = new Date().toDateString();
         return {
