@@ -281,7 +281,7 @@ export const WalkingMissionPage: React.FC<WalkingMissionPageProps> = ({
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-[14px] font-bold text-gray-700 mb-2">
-                                    {walkingData.quizQuestion}
+                                    {randomTransportType === 'walking' ? '도보로 걸리는 시간은?' : '자전거로 걸리는 시간은?'}
                                 </label>
                                 <div className="relative">
                                     <input

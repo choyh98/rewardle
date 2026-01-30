@@ -1,15 +1,22 @@
 import { supabase } from '../lib/supabase';
 import type { GameType } from '../types';
 
+// 사용자 로컬 기준 "오늘 00:00"을 ISO 문자열로 반환 (Supabase 타임존 비교용)
+function getStartOfTodayISO(): string {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d.toISOString();
+}
+
 export const gameService = {
-    // 오늘의 게임 플레이 내역 가져오기 (읽기 전용 - 변경 없음)
+    // 오늘의 게임 플레이 내역 가져오기 (로컬 날짜 기준)
     async getTodayGamePlays(userId: string) {
-        const today = new Date().toISOString().split('T')[0];
+        const startOfToday = getStartOfTodayISO();
         const { data, error } = await supabase
             .from('game_plays')
             .select('*')
             .eq('user_id', userId)
-            .gte('created_at', today)
+            .gte('created_at', startOfToday)
             .order('created_at', { ascending: false });
 
         if (error) throw error;

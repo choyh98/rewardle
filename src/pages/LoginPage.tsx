@@ -85,10 +85,18 @@ const LoginPage: React.FC = () => {
                 {/* Logo Section */}
                 <div className="mb-12 text-center">
                     <div className="mb-6 mx-auto flex items-center justify-center">
-                        <img 
-                            src={logoImage} 
-                            alt="리워들 로고" 
+                        <motion.img
+                            src={logoImage}
+                            alt="리워들 로고"
                             className="w-90 h-auto object-contain"
+                            animate={{
+                                scale: [1, 1.08, 1],
+                            }}
+                            transition={{
+                                duration: 2.5,
+                                repeat: Infinity,
+                                ease: 'easeInOut',
+                            }}
                         />
                     </div>
                     <p className="text-gray-500 mt-2 font-medium">광고를 플레이하다, 혜택을 획득하다</p>
