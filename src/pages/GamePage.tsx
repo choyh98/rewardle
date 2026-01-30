@@ -53,20 +53,13 @@ const GamePage: React.FC = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [brandId, navigate]); // canPlayGame 의존성 제거
 
-    // 게임 시작 시 바로 횟수 차감 (브랜드 로드 완료 시)
-    useEffect(() => {
+    // 게임 횟수 차감 함수 (게임 완료 후 홈으로 갈 때 호출됨)
+    const handleDeductPlay = () => {
         if (!brand || hasRecorded.current) return;
-        
         hasRecorded.current = true;
         const gameTypeKey = type === 'wordle' ? 'wordle' : type === 'shooting' ? 'shooting' : 'apple';
-        console.log('🎮 게임 시작 - 게임 횟수 차감:', { type: gameTypeKey, brandId: brand.id });
+        console.log('🎮 게임 완료 - 게임 횟수 차감:', { type: gameTypeKey, brandId: brand.id });
         recordGameCompletion(gameTypeKey as GameType, brand.id);
-    }, [brand, type, recordGameCompletion]);
-
-    // 레거시: 게임 컴포넌트에서 호출되는 차감 함수 (이제 사용 안 함)
-    const handleDeductPlay = () => {
-        console.log('⚠️ handleDeductPlay 호출됨 (이제 무시됨)');
-        // 게임 시작 시 이미 차감했으므로 여기서는 아무것도 하지 않음
     };
 
     const handleComplete = (earnedPoints: number) => {

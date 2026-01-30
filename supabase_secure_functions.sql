@@ -24,6 +24,11 @@ DROP POLICY IF EXISTS "Users can insert own attendance" ON attendance;
 -- game_plays 테이블의 직접 추가 권한 제거
 DROP POLICY IF EXISTS "Users can insert own game plays" ON game_plays;
 
+-- ⚠️ 게임 시작 기록용 INSERT 권한 복원 (간단한 카운팅용)
+CREATE POLICY "Users can insert own game plays"
+    ON game_plays FOR INSERT
+    WITH CHECK (auth.uid()::text = user_id OR user_id LIKE 'guest_%');
+
 -- ============================================
 -- 2단계: 읽기 전용 RLS 정책 유지 (SELECT만 허용)
 -- ============================================

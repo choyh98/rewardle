@@ -14,6 +14,7 @@ export const gameService = {
         const startOfToday = getStartOfTodayISO();
         console.log('getTodayGamePlays 시작:', { userId, startOfToday });
         
+        // game_plays 테이블에서 조회 (간단한 게임 시작 기록)
         const { data, error } = await supabase
             .from('game_plays')
             .select('*')
@@ -26,7 +27,7 @@ export const gameService = {
             throw error;
         }
 
-        console.log('getTodayGamePlays 결과:', { count: data?.length || 0, data });
+        console.log('getTodayGamePlays 결과 (game_plays):', { count: data?.length || 0, data });
 
         const todayString = new Date().toDateString();
         return {
@@ -103,12 +104,30 @@ export const gameService = {
         }
     },
 
-    // 레거시 함수 (하위 호환성 유지 - 내부적으로 RPC 사용)
+    // 게임 시작 시 간단한 기록 (세션 검증 없이)
     async recordGameCompletion(userId: string, gameType: GameType, brandId?: string): Promise<void> {
-        console.warn('recordGameCompletion은 deprecated되었습니다. startGameSession + completeGameSession을 사용하세요.');
-        
-        // 간단한 게임 기록만 추가 (포인트 없이)
-        const sessionId = await this.startGameSession(userId, gameType, brandId);
-        await this.completeGameSession(sessionId, userId, 0);
+        try {
+            console.log('게임 시작 기록:', { userId, gameType, brandId });
+            
+            // game_plays 테이블에 직접 insert (세션 검증 없이 단순 기록만)
+            const { error } = await supabase
+                .from('game_plays')
+                .insert({
+                    user_id: userId,
+                    game_type: gameType,
+                    brand_id: brandId || null,
+                    created_at: new Date().toISOString()
+                });
+
+            if (error) {
+                console.error('게임 기록 실패:', error);
+                throw error;
+            }
+
+            console.log('✅ 게임 시작 기록 완료');
+        } catch (error) {
+            console.error('게임 기록 중 오류:', error);
+            throw error;
+        }
     }
 };
