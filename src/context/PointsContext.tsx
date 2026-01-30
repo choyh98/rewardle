@@ -186,6 +186,8 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const recordGameCompletion = useCallback(async (gameType: GameType, brandId?: string) => {
         if (!user) return;
 
+        console.log('=== 게임 완료 기록 시작 ===', { gameType, brandId, userId: user.id, isGuest: user.isGuest });
+
         const today = new Date().toDateString();
         const newCount = dailyGames.date !== today ? 1 : dailyGames.count + 1;
 
@@ -195,22 +197,29 @@ export const PointsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             ? { date: today, count: 1 }
             : { ...dailyGames, count: newCount };
 
+        console.log('로컬 state 업데이트:', newDailyGames);
         setDailyGames(newDailyGames);
 
         if (user.isGuest) {
             try {
                 localStorage.setItem(STORAGE_KEYS.DAILY_GAMES, JSON.stringify(newDailyGames));
                 localStorage.setItem(STORAGE_KEYS.GAME_HISTORY, JSON.stringify([...gameHistory, { date: today, gameType }]));
+                console.log('게스트: localStorage 저장 완료');
             } catch (error) {
                 console.error('Failed to save game completion to localStorage:', error);
             }
         } else {
             try {
+                console.log('로그인 사용자: Supabase에 게임 기록 저장 시작...');
                 await gameService.recordGameCompletion(user.id, gameType, brandId);
+                console.log('✅ Supabase에 게임 기록 저장 완료!');
             } catch (error) {
-                console.error('Failed to save game completion to Supabase:', error);
+                console.error('❌ Failed to save game completion to Supabase:', error);
+                // 에러 발생 시 로컬 state라도 유지
             }
         }
+        
+        console.log('=== 게임 완료 기록 종료 ===', { newCount, dailyGamesRemaining: DAILY_GAME_LIMIT - newCount });
     }, [user, dailyGames, gameHistory]);
 
     const canPlayGame = useCallback(() => {

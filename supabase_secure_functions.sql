@@ -55,13 +55,14 @@ CREATE TABLE IF NOT EXISTS game_sessions (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_game_sessions_user_id ON game_sessions(user_id);
-CREATE INDEX idx_game_sessions_is_completed ON game_sessions(is_completed);
+CREATE INDEX IF NOT EXISTS idx_game_sessions_user_id ON game_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_game_sessions_is_completed ON game_sessions(is_completed);
 
 -- game_sessions RLS 활성화
 ALTER TABLE game_sessions ENABLE ROW LEVEL SECURITY;
 
 -- 사용자는 자신의 세션만 조회 가능
+DROP POLICY IF EXISTS "Users can view own sessions" ON game_sessions;
 CREATE POLICY "Users can view own sessions"
     ON game_sessions FOR SELECT
     USING (auth.uid()::text = user_id OR user_id LIKE 'guest_%');
@@ -87,6 +88,7 @@ DECLARE
     v_new_points INTEGER;
     v_today_total INTEGER;
     v_max_daily_points INTEGER := 100; -- 하루 최대 포인트
+    v_korea_midnight TIMESTAMP WITH TIME ZONE;
 BEGIN
     -- 입력 검증
     IF p_amount <= 0 OR p_amount > 100 THEN
@@ -94,12 +96,15 @@ BEGIN
         RETURN;
     END IF;
 
-    -- 오늘 획득한 총 포인트 조회 (어뷰징 방지)
+    -- 한국 시간 기준 오늘 자정 계산 (UTC+9)
+    v_korea_midnight := (CURRENT_DATE AT TIME ZONE 'UTC') - INTERVAL '9 hours';
+
+    -- 오늘 획득한 총 포인트 조회 (한국 시간 기준, 어뷰징 방지)
     SELECT COALESCE(SUM(amount), 0) INTO v_today_total
     FROM point_history
     WHERE user_id = p_user_id
       AND amount > 0
-      AND created_at >= CURRENT_DATE;
+      AND created_at >= v_korea_midnight;
 
     -- 일일 한도 초과 체크
     IF v_today_total + p_amount > v_max_daily_points THEN
@@ -149,12 +154,16 @@ DECLARE
     v_session_id UUID;
     v_today_plays INTEGER;
     v_max_daily_plays INTEGER := 10; -- 하루 최대 게임 횟수
+    v_korea_midnight TIMESTAMP WITH TIME ZONE;
 BEGIN
-    -- 오늘 플레이한 게임 수 조회
+    -- 한국 시간 기준 오늘 자정 계산 (UTC+9)
+    v_korea_midnight := (CURRENT_DATE AT TIME ZONE 'UTC') - INTERVAL '9 hours';
+
+    -- 오늘 플레이한 게임 수 조회 (한국 시간 기준)
     SELECT COUNT(*) INTO v_today_plays
     FROM game_plays
     WHERE user_id = p_user_id
-      AND created_at >= CURRENT_DATE;
+      AND created_at >= v_korea_midnight;
 
     -- 일일 게임 횟수 초과 체크
     IF v_today_plays >= v_max_daily_plays THEN
@@ -258,13 +267,19 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 DECLARE
-    v_today DATE := CURRENT_DATE;
-    v_yesterday DATE := CURRENT_DATE - INTERVAL '1 day';
+    v_today DATE;
+    v_yesterday DATE;
     v_last_check_date DATE;
     v_last_streak INTEGER;
     v_new_streak INTEGER;
     v_points INTEGER := 5; -- 출석 포인트
+    v_korea_midnight TIMESTAMP WITH TIME ZONE;
 BEGIN
+    -- 한국 시간 기준 오늘 자정 계산 (UTC+9)
+    v_korea_midnight := (CURRENT_DATE AT TIME ZONE 'UTC') - INTERVAL '9 hours';
+    v_today := (v_korea_midnight AT TIME ZONE 'Asia/Seoul')::DATE;
+    v_yesterday := v_today - INTERVAL '1 day';
+
     -- 오늘 이미 출석했는지 확인
     SELECT check_date INTO v_last_check_date
     FROM attendance
@@ -317,13 +332,17 @@ DECLARE
     v_points INTEGER := 5; -- 미션 포인트
     v_today_mission_count INTEGER;
     v_max_daily_missions INTEGER := 10; -- 하루 최대 미션 수
+    v_korea_midnight TIMESTAMP WITH TIME ZONE;
 BEGIN
-    -- 오늘 완료한 미션 수 조회 (어뷰징 방지)
+    -- 한국 시간 기준 오늘 자정 계산 (UTC+9)
+    v_korea_midnight := (CURRENT_DATE AT TIME ZONE 'UTC') - INTERVAL '9 hours';
+
+    -- 오늘 완료한 미션 수 조회 (한국 시간 기준, 어뷰징 방지)
     SELECT COUNT(*) INTO v_today_mission_count
     FROM point_history
     WHERE user_id = p_user_id
       AND reason LIKE '%미션%'
-      AND created_at >= CURRENT_DATE;
+      AND created_at >= v_korea_midnight;
 
     IF v_today_mission_count >= v_max_daily_missions THEN
         RETURN QUERY SELECT false, '일일 미션 횟수를 초과했습니다.'::TEXT, 0;
