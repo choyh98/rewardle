@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { pointService } from './pointService';
 
 export interface PointExchange {
     id: string;
@@ -22,6 +23,13 @@ export const createExchange = async (
     voucherType: string,
     points: number
 ): Promise<PointExchange> => {
+    // 1. 현재 포인트 확인
+    const currentPoints = await pointService.getUserPoints(userId);
+    if (currentPoints < points) {
+        throw new Error('포인트가 부족합니다.');
+    }
+
+    // 2. 교환 신청 생성
     const { data, error } = await supabase
         .from('point_exchanges')
         .insert([
@@ -41,6 +49,13 @@ export const createExchange = async (
         console.error('Failed to create exchange:', error);
         throw error;
     }
+
+    // 3. 포인트 차감 (음수로 추가)
+    await pointService.addPoints(
+        userId,
+        -points,
+        `${voucherType} 교환 신청`
+    );
 
     return data;
 };
