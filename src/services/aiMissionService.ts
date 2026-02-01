@@ -1,6 +1,10 @@
 import type { AIAnalysisResult } from '../types';
 
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "AIzaSyDNovfloH3x01CX1HLi0gW3YxtiibNEXJk";
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+
+if (!GEMINI_API_KEY) {
+    console.error('⚠️ VITE_GEMINI_API_KEY가 설정되지 않았습니다. .env 파일을 확인하세요.');
+}
 
 interface AnalyzeInput {
     storeName: string;
@@ -13,6 +17,17 @@ interface AnalyzeInput {
  */
 export const analyzePlaceWithAI = async ({ storeName, address }: AnalyzeInput): Promise<AIAnalysisResult> => {
     try {
+        if (!GEMINI_API_KEY) {
+            throw new Error(
+                'Gemini API 키가 설정되지 않았습니다.\n\n' +
+                '해결 방법:\n' +
+                '1. Google AI Studio (https://aistudio.google.com/app/apikey)에서 API 키 발급\n' +
+                '2. .env 파일에 VITE_GEMINI_API_KEY=발급받은키 추가\n' +
+                '3. 개발 서버 재시작 (npm run dev)\n\n' +
+                '자세한 가이드: GEMINI_API_GUIDE.md 참고'
+            );
+        }
+
         const prompt = `
             # [CRITICAL ROLE: NAVER MAP UI HACKER]
             사장님의 분노: "키워드는 좋은데, 검색하면 지도가 안 나오고 블로그만 나온다!"
@@ -83,7 +98,7 @@ export const analyzePlaceWithAI = async ({ storeName, address }: AnalyzeInput): 
 
         // Gemini API 호출
         const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
             {
                 method: 'POST',
                 headers: {
@@ -95,18 +110,25 @@ export const analyzePlaceWithAI = async ({ storeName, address }: AnalyzeInput): 
                             text: prompt
                         }]
                     }],
-                    tools: [{
-                        googleSearch: {}
-                    }]
+                    generationConfig: {
+                        temperature: 0.7,
+                        maxOutputTokens: 2048,
+                    }
                 })
             }
         );
 
         if (!response.ok) {
-            throw new Error(`Gemini API Error: ${response.status}`);
+            const errorData = await response.json().catch(() => ({}));
+            console.error('Gemini API Error Details:', errorData);
+            throw new Error(`Gemini API Error: ${response.status} - ${errorData.error?.message || response.statusText}`);
         }
 
         const data = await response.json();
+        
+        // 응답 구조 확인
+        console.log('Gemini API Response:', JSON.stringify(data, null, 2));
+        
         const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
         console.log("AI 원본 응답:", text);

@@ -1,6 +1,12 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const API_KEY = "AIzaSyDNovfloH3x01CX1HLi0gW3YxtiibNEXJk";
+// 환경변수에서 API 키 가져오기
+const API_KEY = process.env.GEMINI_API_KEY;
+
+if (!API_KEY) {
+    console.error('⚠️ GEMINI_API_KEY 환경변수가 설정되지 않았습니다.');
+}
+
 const genAI = new GoogleGenerativeAI(API_KEY);
 
 /**
@@ -84,7 +90,8 @@ export const analyzePlaceUrl = async ({ storeName, address }) => {
         }
 
         if (data.status === 'fail' || !data.store_analysis) {
-            throw new Error(data.reason || "매장 정보를 확인할 수 없습니다.");
+            const errorMsg = data.reason || "매장 정보를 확인할 수 없습니다.";
+            throw new Error(errorMsg);
         }
 
         return {

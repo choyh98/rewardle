@@ -85,7 +85,28 @@ const AdminDashboard: React.FC = () => {
             });
         } catch (error: any) {
             console.error('AI 분석 실패:', error);
-            alert(`AI 분석에 실패했습니다.\n${error.message || '다시 시도해주세요.'}`);
+            
+            // 상세한 에러 메시지 제공
+            let errorMessage = 'AI 분석에 실패했습니다.';
+            
+            if (error.message.includes('API Error')) {
+                errorMessage += '\n\n🔑 Gemini API 키 문제가 발생했습니다.';
+                errorMessage += '\n\n해결 방법:';
+                errorMessage += '\n1. Google AI Studio에서 새 API 키 발급';
+                errorMessage += '\n2. .env 파일에 VITE_GEMINI_API_KEY 업데이트';
+                errorMessage += '\n3. 개발 서버 재시작 (npm run dev)';
+                errorMessage += '\n\n📖 자세한 가이드: GEMINI_API_GUIDE.md 참고';
+            } else if (error.message.includes('파싱 실패')) {
+                errorMessage += '\n\nAI 응답 형식이 올바르지 않습니다.';
+                errorMessage += '\n잠시 후 다시 시도해주세요.';
+            } else if (error.message.includes('매장 정보')) {
+                errorMessage += '\n\n매장 정보를 찾을 수 없습니다.';
+                errorMessage += '\n주소를 더 자세히 입력해보세요.';
+            } else {
+                errorMessage += `\n\n오류: ${error.message}`;
+            }
+            
+            alert(errorMessage);
         } finally {
             setIsAILoading(false);
         }

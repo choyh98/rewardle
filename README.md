@@ -39,7 +39,14 @@ npm install
 ```env
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+VITE_GEMINI_API_KEY=your_gemini_api_key  # AI 미션 생성용 (선택)
+VITE_ONNURI_API_KEY=your_onnuri_api_key  # 온누리상품권 API (선택)
 ```
+
+⚠️ **중요:** 
+- `.env` 파일 수정 후 반드시 개발 서버 재시작!
+- 본인의 API 키를 발급받아 사용하세요 (코드에 하드코딩 금지)
+- 자세한 가이드: `SECURITY_API_KEY_REMOVAL.md` 참고
 
 ### 개발 서버
 ```bash
@@ -126,9 +133,21 @@ src/
 
 ## 📚 문서
 
+### 기본 가이드
 - `SUPABASE_SETUP.md` - 데이터베이스 설정 가이드
 - `QA_TEST_GUIDE.md` - QA 테스트 및 검증 가이드
 - `supabase_complete_schema.sql` - 통합 DB 스키마
+
+### API 연동 가이드
+- `ONNURI_API_GUIDE.md` - 온누리상품권 가맹점 API 연동 가이드
+- `GEMINI_API_GUIDE.md` - Gemini AI 설정 가이드
+- `GEMINI_API_TROUBLESHOOTING.md` - ⚠️ **Gemini API 에러 해결 방법**
+
+### 🚨 문제 해결
+**"Gemini API Error" 발생 시:**
+1. 브라우저 콘솔에서 `geminiTest.runAll()` 실행
+2. `GEMINI_API_TROUBLESHOOTING.md` 파일 참고
+3. `.env` 파일에서 API 키 확인 후 서버 재시작
 
 ## 📄 라이선스
 
