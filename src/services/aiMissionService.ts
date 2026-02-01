@@ -96,32 +96,60 @@ export const analyzePlaceWithAI = async ({ storeName, address }: AnalyzeInput): 
             반드시 JSON만 출력하세요. 다른 설명은 넣지 마세요.
         `;
 
-        // Gemini API 호출
-        const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    contents: [{
-                        parts: [{
-                            text: prompt
-                        }]
-                    }],
-                    generationConfig: {
-                        temperature: 0.7,
-                        maxOutputTokens: 2048,
+        // Gemini API 호출 - 여러 모델 시도 (최신순)
+        let response;
+        const models = [
+            'gemini-2.5-flash',      // 최신 2.5 Flash
+            'gemini-2.5-pro',        // 최신 2.5 Pro
+            'gemini-2.0-flash',      // 2.0 Flash
+            'gemini-exp-1206',       // Experimental
+            'gemini-flash-latest'    // Fallback
+        ];
+        
+        let lastError;
+        for (const model of models) {
+            try {
+                console.log(`Trying model: ${model}`);
+                response = await fetch(
+                    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [{
+                                    text: prompt
+                                }]
+                            }],
+                            generationConfig: {
+                                temperature: 0.7,
+                                maxOutputTokens: 8192, // 더 긴 응답을 위해 증가
+                            }
+                        })
                     }
-                })
+                );
+                
+                if (response.ok) {
+                    console.log(`✅ Successfully using model: ${model}`);
+                    break;
+                }
+                lastError = await response.json().catch(() => ({}));
+                console.warn(`Model ${model} failed:`, lastError);
+            } catch (error) {
+                console.warn(`Model ${model} error:`, error);
+                lastError = error;
             }
-        );
+        }
 
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            console.error('Gemini API Error Details:', errorData);
-            throw new Error(`Gemini API Error: ${response.status} - ${errorData.error?.message || response.statusText}`);
+        if (!response || !response.ok) {
+            const errorData = lastError || {};
+            console.error('All Gemini models failed. Last error:', errorData);
+            throw new Error(
+                `Gemini API Error: ${response?.status || 'FAILED'} - ${errorData.error?.message || '모든 모델 접근 실패'}\n\n` +
+                `API 키를 재발급받으세요: https://aistudio.google.com/app/apikey`
+            );
         }
 
         const data = await response.json();
