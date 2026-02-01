@@ -1,14 +1,35 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { migrateLocalStorageToSupabase, clearLocalStorageData } from '../lib/dataMigration';
+import { promoCodeService } from '../services/promoCodeService';
 import logoImage from '../assets/logo.png';
 
 const LoginPage: React.FC = () => {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const [loading, setLoading] = useState(false);
     const [checking, setChecking] = useState(true);
+    const [promoCode, setPromoCode] = useState<string | null>(null);
+    const [promoMessage, setPromoMessage] = useState<string>('');
+
+    // URL에서 프로모션 코드 확인
+    useEffect(() => {
+        const code = searchParams.get('ref') || searchParams.get('promo');
+        if (code) {
+            setPromoCode(code);
+            // localStorage에 저장 (로그인 후 적용)
+            localStorage.setItem('pending_promo_code', code);
+            
+            // 코드 유효성 미리 확인
+            promoCodeService.validatePromoCode(code).then(result => {
+                if (result.valid) {
+                    setPromoMessage(`${result.promoCode?.bonus_points || 0}P 보너스 혜택!`);
+                }
+            });
+        }
+    }, [searchParams]);
 
     // 이미 로그인되어 있는지 확인
     useEffect(() => {
@@ -25,6 +46,18 @@ const LoginPage: React.FC = () => {
                     if (migrated) {
                         clearLocalStorageData();
                         console.log('✅ Guest data migration completed');
+                    }
+                }
+                
+                // 프로모션 코드 적용
+                const pendingPromo = localStorage.getItem('pending_promo_code');
+                if (pendingPromo) {
+                    console.log('🎁 Applying promo code:', pendingPromo);
+                    const result = await promoCodeService.applyPromoCode(session.user.id, pendingPromo);
+                    if (result.success) {
+                        localStorage.removeItem('pending_promo_code');
+                        console.log('✅ Promo code applied:', result.message);
+                        alert(`🎉 ${result.message}\n+${result.points_awarded}P 보너스 지급!`);
                     }
                 }
                 
@@ -82,6 +115,27 @@ const LoginPage: React.FC = () => {
                 transition={{ duration: 0.6 }}
                 className="w-full max-w-md flex flex-col items-center"
             >
+                {/* Promo Code Banner */}
+                {promoCode && promoMessage && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="w-full mb-6 p-4 bg-gradient-to-r from-primary/10 to-primary/20 rounded-2xl border-2 border-primary/30"
+                    >
+                        <div className="text-center">
+                            <p className="text-primary font-bold text-lg mb-1">
+                                {promoMessage}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                                코드: <span className="font-bold">{promoCode.toUpperCase()}</span>
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                                로그인하면 자동으로 적용됩니다!
+                            </p>
+                        </div>
+                    </motion.div>
+                )}
+
                 {/* Logo Section */}
                 <div className="mb-12 text-center">
                     <div className="mb-6 mx-auto flex items-center justify-center">
