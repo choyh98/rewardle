@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { migrateLocalStorageToSupabase, clearLocalStorageData } from '../lib/dataMigration';
 import { promoCodeService } from '../services/promoCodeService';
+import { pointService } from '../services/pointService';
 import logoImage from '../assets/logo.png';
 
 const LoginPage: React.FC = () => {
@@ -61,7 +62,30 @@ const LoginPage: React.FC = () => {
                     }
                 }
                 
-                navigate('/home');
+                // 캠페인 회원가입 보상 지급
+                const pendingCampaign = localStorage.getItem('pending_campaign');
+                if (pendingCampaign) {
+                    const campaignKey = `campaign_signup_${pendingCampaign}`;
+                    const alreadyClaimed = localStorage.getItem(campaignKey);
+                    
+                    if (!alreadyClaimed) {
+                        console.log('🎁 Applying campaign signup reward:', pendingCampaign);
+                        const result = await pointService.addPoints(session.user.id, 200, `${pendingCampaign} 캠페인 - 회원가입 보상`);
+                        if (result.success) {
+                            localStorage.setItem(campaignKey, 'true');
+                            console.log('✅ Campaign reward applied: 200P');
+                        }
+                    }
+                }
+                
+                // 캠페인 페이지로 리다이렉트
+                const campaignRedirect = localStorage.getItem('pending_campaign');
+                if (campaignRedirect) {
+                    localStorage.removeItem('pending_campaign');
+                    navigate(`/campaign/${campaignRedirect}`);
+                } else {
+                    navigate('/home');
+                }
             } else {
                 setChecking(false);
             }

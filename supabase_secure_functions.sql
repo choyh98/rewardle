@@ -92,11 +92,43 @@ DECLARE
     v_current_points INTEGER;
     v_new_points INTEGER;
     v_today_total INTEGER;
-    v_max_daily_points INTEGER := 100; -- 하루 최대 포인트
+    v_max_daily_points INTEGER := 500; -- 하루 최대 포인트 (캠페인 포함)
     v_korea_midnight TIMESTAMP WITH TIME ZONE;
 BEGIN
-    -- 입력 검증
-    IF p_amount <= 0 OR p_amount > 100 THEN
+    -- 입력 검증 (차감은 별도 체크)
+    IF p_amount = 0 THEN
+        RETURN QUERY SELECT v_current_points, false, '포인트가 0입니다.'::TEXT;
+        RETURN;
+    END IF;
+    
+    -- 포인트 차감(음수)인 경우 별도 처리
+    IF p_amount < 0 THEN
+        -- 현재 포인트 조회
+        SELECT COALESCE(points, 0) INTO v_current_points
+        FROM user_points
+        WHERE user_id = p_user_id;
+        
+        -- 잔액 부족 체크
+        IF v_current_points + p_amount < 0 THEN
+            RETURN QUERY SELECT 0, false, '포인트가 부족합니다.'::TEXT;
+            RETURN;
+        END IF;
+        
+        v_new_points := v_current_points + p_amount;
+        
+        -- 포인트 내역 추가
+        INSERT INTO point_history (user_id, amount, reason)
+        VALUES (p_user_id, p_amount, p_reason);
+        
+        -- 총 포인트 업데이트
+        UPDATE user_points SET points = v_new_points WHERE user_id = p_user_id;
+        
+        RETURN QUERY SELECT v_new_points, true, '포인트가 차감되었습니다.'::TEXT;
+        RETURN;
+    END IF;
+    
+    -- 포인트 적립(양수)인 경우 일일 한도 체크
+    IF p_amount > 500 THEN
         RETURN QUERY SELECT 0, false, '비정상적인 포인트 요청입니다.'::TEXT;
         RETURN;
     END IF;

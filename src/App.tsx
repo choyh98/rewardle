@@ -13,6 +13,7 @@ const GamePage = lazy(() => import('./pages/GamePage'));
 const AttendancePage = lazy(() => import('./pages/AttendancePage'));
 const PointsHistoryPage = lazy(() => import('./pages/PointsHistoryPage'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const CampaignPage = lazy(() => import('./pages/CampaignPage'));
 
 // 로딩 컴포넌트
 const LoadingFallback = () => (
@@ -38,6 +39,7 @@ function App() {
               <Route path="/attendance" element={<AttendancePage />} />
               <Route path="/points-history" element={<PointsHistoryPage />} />
               <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/campaign/:brandName" element={<CampaignPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
             </Suspense>
