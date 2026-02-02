@@ -15,7 +15,7 @@ const LoginPage: React.FC = () => {
     const [promoCode, setPromoCode] = useState<string | null>(null);
     const [promoMessage, setPromoMessage] = useState<string>('');
 
-    // URL에서 프로모션 코드 확인
+    // URL에서 프로모션 코드 및 캠페인 확인
     useEffect(() => {
         const code = searchParams.get('ref') || searchParams.get('promo');
         if (code) {
@@ -29,6 +29,13 @@ const LoginPage: React.FC = () => {
                     setPromoMessage(`${result.promoCode?.bonus_points || 0}P 보너스 혜택!`);
                 }
             });
+        }
+        
+        // 캠페인 파라미터 확인
+        const campaign = searchParams.get('campaign');
+        if (campaign) {
+            console.log('📌 Campaign detected:', campaign);
+            localStorage.setItem('pending_campaign', campaign);
         }
     }, [searchParams]);
 
@@ -70,10 +77,12 @@ const LoginPage: React.FC = () => {
                     
                     if (!alreadyClaimed) {
                         console.log('🎁 Applying campaign signup reward:', pendingCampaign);
-                        const result = await pointService.addPoints(session.user.id, 200, `${pendingCampaign} 캠페인 - 회원가입 보상`);
-                        if (result.success) {
+                        try {
+                            await pointService.addPoints(session.user.id, 200, `${pendingCampaign} 캠페인 - 회원가입 보상`);
                             localStorage.setItem(campaignKey, 'true');
                             console.log('✅ Campaign reward applied: 200P');
+                        } catch (error) {
+                            console.error('❌ Campaign reward failed:', error);
                         }
                     }
                 }
