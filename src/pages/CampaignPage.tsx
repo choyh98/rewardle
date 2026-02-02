@@ -4,6 +4,7 @@ import { Gift, ArrowRight, CheckCircle2, Trophy, HelpCircle, X, ExternalLink } f
 import ShootingWordle from '../components/games/shootingwordle/ShootingWordle';
 import { useAuth } from '../context/AuthContext';
 import { usePoints } from '../context/PointsContext';
+import pastaImage from '../assets/pasta.jpg';
 
 // 돼지게티 브랜드 데이터
 const CAMPAIGN_BRAND = {
@@ -353,7 +354,7 @@ const CampaignPage: React.FC = () => {
                         {/* 파스타 이미지 */}
                         <div className="w-full overflow-hidden rounded-xl">
                             <img 
-                                src="/src/assets/pasta.jpg" 
+                                src={pastaImage} 
                                 alt="김치항정살파스타" 
                                 className="w-full h-48 object-cover"
                             />
