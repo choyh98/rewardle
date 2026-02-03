@@ -12,13 +12,16 @@
     "analyze": "vite build --mode analyze"
   },
   "dependencies": {
+    "@sparticuz/chromium": "^143.0.4",
     "@supabase/supabase-js": "^2.90.1",
     "@tailwindcss/vite": "^4.1.18",
     "@types/canvas-confetti": "^1.9.0",
+    "@types/puppeteer-core": "^5.4.0",
     "canvas-confetti": "^1.9.4",
     "clsx": "^2.1.1",
     "framer-motion": "^12.27.1",
     "lucide-react": "^0.562.0",
+    "puppeteer-core": "^24.36.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.12.0",

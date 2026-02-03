@@ -24,6 +24,7 @@ export const WalkingMissionPage: React.FC<WalkingMissionPageProps> = ({
     walkingData,
     storeName,
     storeImage,
+    placeUrl,
     bonusPoints,
     onBack,
     onSuccess
@@ -248,12 +249,14 @@ export const WalkingMissionPage: React.FC<WalkingMissionPageProps> = ({
                         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
                             <button
                                 onClick={() => {
-                                    window.open('https://www.naver.com', '_blank');
+                                    // placeUrl이 있으면 그걸로, 없으면 네이버 홈으로
+                                    const url = placeUrl || 'https://map.naver.com';
+                                    window.open(url, '_blank');
                                     setStep('verify');
                                 }}
                                 className="w-full h-[56px] bg-[#ff6b6b] text-white font-black text-[17px] rounded-[16px] hover:bg-[#ff5252] active:scale-[0.98] transition-all shadow-lg flex items-center justify-center gap-2"
                             >
-                                길찾기 시작하기 <ChevronRight size={24} />
+                                {placeUrl ? '매장 페이지 열기' : '길찾기 시작하기'} <ChevronRight size={24} />
                             </button>
                         </div>
                     </motion.div>
