@@ -54,8 +54,8 @@ export default async function handler(req: Req, res: Res) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-NCP-APIGW-API-KEY-ID': clientId,
-        'X-NCP-APIGW-API-KEY': clientSecret,
+        'x-ncp-apigw-api-key-id': clientId,
+        'x-ncp-apigw-api-key': clientSecret,
       },
       body: JSON.stringify({
         messages: [{ role: 'user', content: prompt }],
@@ -70,15 +70,24 @@ export default async function handler(req: Req, res: Res) {
     const data = (await response.json().catch(() => ({}))) as {
       status?: { code?: string; message?: string };
       result?: { message?: { content?: string } };
+      error?: { message?: string; code?: string };
     };
 
     if (!response.ok) {
-      const msg = data?.status?.message || `CLOVA API ${response.status}`;
-      return res.status(response.status).json({ error: msg });
+      const msg = data?.status?.message || data?.error?.message || `CLOVA API ${response.status}`;
+      console.error('CLOVA API Error:', { status: response.status, data });
+      return res.status(response.status).json({ 
+        error: msg,
+        details: { status: response.status, code: data?.status?.code || data?.error?.code, raw: data }
+      });
     }
     if (data?.status?.code !== '20000') {
       const msg = data?.status?.message || 'CLOVA API 오류';
-      return res.status(502).json({ error: msg });
+      console.error('CLOVA API Non-20000:', data);
+      return res.status(502).json({ 
+        error: msg,
+        details: { code: data?.status?.code, raw: data }
+      });
     }
 
     const text = data?.result?.message?.content ?? '';
