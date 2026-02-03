@@ -1,7 +1,7 @@
 import type { AIAnalysisResult } from '../types';
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const CLOVA_STUDIO_ENDPOINT = import.meta.env.VITE_CLOVA_STUDIO_ENDPOINT || 'HCX-003';
+const CLOVA_STUDIO_ENDPOINT = import.meta.env.VITE_CLOVA_STUDIO_ENDPOINT || 'HCX-005';
 
 if (!GEMINI_API_KEY) {
     console.warn('⚠️ Gemini API 키가 없습니다. CLOVA는 /api/clova-chat 프록시로 시도되며, 배포 시 Vercel에 CLOVA_STUDIO_CLIENT_ID·CLIENT_SECRET을 설정하세요.');

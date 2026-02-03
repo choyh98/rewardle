@@ -29,7 +29,7 @@ export default async function handler(req: Req, res: Res) {
 
   const clientId = process.env.CLOVA_STUDIO_CLIENT_ID;
   const clientSecret = process.env.CLOVA_STUDIO_CLIENT_SECRET;
-  const endpoint = process.env.CLOVA_STUDIO_ENDPOINT || 'HCX-003';
+  const endpoint = process.env.CLOVA_STUDIO_ENDPOINT || 'HCX-005';
 
   if (!clientId || !clientSecret) {
     return res.status(503).json({
