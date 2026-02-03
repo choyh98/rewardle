@@ -35,18 +35,23 @@ npm install
    - 상세 가이드: `SUPABASE_SETUP.md` 참조
 
 ### 환경 변수
-`.env` 파일 생성:
+`.env` 파일 생성 (`.env.example` 참고):
 ```env
+# Supabase (필수)
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-VITE_GEMINI_API_KEY=your_gemini_api_key  # AI 미션 생성용 (선택)
-VITE_ONNURI_API_KEY=your_onnuri_api_key  # 온누리상품권 API (선택)
+
+# Gemini AI (필수 - AI 미션 생성용)
+VITE_GEMINI_API_KEY=your_gemini_api_key
+
+# 온누리상품권 API (선택)
+VITE_ONNURI_API_KEY=your_onnuri_api_key
 ```
 
 ⚠️ **중요:** 
 - `.env` 파일 수정 후 반드시 개발 서버 재시작!
+- Gemini API 키 발급: https://aistudio.google.com/app/apikey
 - 본인의 API 키를 발급받아 사용하세요 (코드에 하드코딩 금지)
-- 자세한 가이드: `SECURITY_API_KEY_REMOVAL.md` 참고
 
 ### 개발 서버
 ```bash
@@ -144,10 +149,44 @@ src/
 - `GEMINI_API_TROUBLESHOOTING.md` - ⚠️ **Gemini API 에러 해결 방법**
 
 ### 🚨 문제 해결
+
+#### Gemini API 문제 해결
 **"Gemini API Error" 발생 시:**
-1. 브라우저 콘솔에서 `geminiTest.runAll()` 실행
-2. `GEMINI_API_TROUBLESHOOTING.md` 파일 참고
-3. `.env` 파일에서 API 키 확인 후 서버 재시작
+
+1. **브라우저 콘솔에서 테스트**
+   ```javascript
+   // 전체 테스트 실행
+   geminiTest.runAll()
+   
+   // 개별 테스트
+   geminiTest.connection()      // 연결 테스트
+   geminiTest.validateKey()     // API 키 검증
+   geminiTest.testMission()     // 미션 생성 테스트
+   geminiTest.help()            // 도움말
+   ```
+
+2. **API 키 재발급**
+   - https://aistudio.google.com/app/apikey 에서 새로운 키 발급
+   - `.env` 파일에서 `VITE_GEMINI_API_KEY` 업데이트
+   - 개발 서버 재시작 (`npm run dev`)
+
+3. **상세 가이드**
+   - `GEMINI_API_TROUBLESHOOTING.md` 파일 참고
+
+#### 일반적인 문제
+
+**개발 서버가 시작되지 않을 때:**
+```bash
+# node_modules 재설치
+rm -rf node_modules package-lock.json
+npm install
+npm run dev
+```
+
+**환경 변수가 적용되지 않을 때:**
+- `.env` 파일이 프로젝트 루트에 있는지 확인
+- 개발 서버 재시작 (Ctrl+C 후 `npm run dev`)
+- 브라우저 캐시 삭제 후 새로고침
 
 ## 📄 라이선스
 

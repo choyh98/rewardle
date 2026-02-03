@@ -14,6 +14,14 @@ const AdminDashboard: React.FC = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
 
+    // 도보 시간으로부터 자전거 시간 계산 (도보의 40-50%)
+    const calculateBicycleTime = (walkingTime: string): string => {
+        const minutes = parseInt(walkingTime.replace(/[^0-9]/g, ''));
+        if (isNaN(minutes)) return '';
+        const bicycleMinutes = Math.round(minutes * 0.45); // 45%
+        return `${bicycleMinutes}분`;
+    };
+
     const [newBrand, setNewBrand] = useState({
         name: '',
         wordleAnswer: '',
@@ -59,9 +67,16 @@ const AdminDashboard: React.FC = () => {
 
     // AI 분석 실행
     const handleAIAnalyze = async () => {
-        // placeUrl만 필수
-        if (!newBrand.placeUrl?.trim()) {
-            alert('네이버 플레이스 URL을 입력해주세요!');
+        if (!newBrand.name) {
+            alert('매장명을 먼저 입력해주세요!');
+            return;
+        }
+        if (!newBrand.address?.trim()) {
+            alert('주소를 입력해주세요!');
+            return;
+        }
+        if (!newBrand.category?.trim()) {
+            alert('카테고리를 입력해주세요!');
             return;
         }
 
@@ -70,10 +85,9 @@ const AdminDashboard: React.FC = () => {
 
         try {
             const result = await analyzePlaceWithAI({
-                placeUrl: newBrand.placeUrl.trim(),
-                storeName: newBrand.name || undefined,
-                address: newBrand.address || undefined,
-                category: newBrand.category || undefined,
+                storeName: newBrand.name,
+                address: newBrand.address.trim(),
+                category: newBrand.category.trim(),
                 signatureMenu: newBrand.signatureMenu || undefined,
                 storeDescription: newBrand.storeDescription || undefined
             });
@@ -83,11 +97,13 @@ const AdminDashboard: React.FC = () => {
 
             // 첫 번째 키워드를 기본값으로 설정
             const firstKeyword = result.seo_strategy.target_keywords[0];
+            const bicycleTime = result.user_mission.bicycle_time || calculateBicycleTime(result.user_mission.correct_answer);
+            
             setWalkingMission({
                 seoKeyword: firstKeyword,
                 startPoint: result.user_mission.start_point,
                 walkingTime: result.user_mission.correct_answer,
-                bicycleTime: '', // 관리자가 직접 입력
+                bicycleTime: bicycleTime,
                 quizQuestion: result.user_mission.quiz_question,
                 correctAnswer: result.user_mission.correct_answer
             });
@@ -546,83 +562,57 @@ const AdminDashboard: React.FC = () => {
                             {/* 길찾기 미션 폼 (AI 기반) */}
                             {missionType === 'walking' && (
                                 <div className="space-y-4">
-                                    {/* 네이버 플레이스 URL (필수) - 가장 상단 */}
-                                    <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-5 border-2 border-blue-300">
-                                        <label className="block text-sm font-black text-gray-800 mb-2 flex items-center gap-2">
-                                            <LinkIcon size={16} className="text-blue-600" /> 
-                                            네이버 플레이스 URL (필수)
-                                        </label>
-                                        <input
-                                            type="text"
-                                            placeholder="https://m.place.naver.com/restaurant/..."
-                                            className="w-full h-14 bg-white border-2 border-blue-300 rounded-xl px-4 text-sm font-medium focus:border-blue-500 focus:outline-none transition-all"
-                                            value={newBrand.placeUrl}
-                                            onChange={e => setNewBrand({ ...newBrand, placeUrl: e.target.value })}
-                                        />
-                                        <p className="text-xs text-blue-700 mt-2 font-medium">
-                                            💡 URL만 입력하면 AI가 자동으로 매장명, 주소, 리뷰를 분석합니다!
-                                        </p>
-                                    </div>
+                                    {/* 주소 입력 (필수) */}
+                                    <input
+                                        type="text"
+                                        placeholder="주소 (필수): 예) 서울 강남구 역삼동 123"
+                                        className="w-full h-14 bg-gray-50 border-transparent rounded-2xl px-5 focus:bg-white focus:border-primary focus:outline-none transition-all font-medium"
+                                        value={newBrand.address}
+                                        onChange={e => setNewBrand({ ...newBrand, address: e.target.value })}
+                                    />
+                                    {/* 카테고리 (필수) */}
+                                    <input
+                                        type="text"
+                                        placeholder="카테고리 (필수): 예) 카페, 맛집, 막걸리집, 베이커리"
+                                        className="w-full h-12 bg-gray-50 border-transparent rounded-xl px-4 text-sm font-medium focus:bg-white focus:border-primary focus:outline-none transition-all"
+                                        value={newBrand.category}
+                                        onChange={e => setNewBrand({ ...newBrand, category: e.target.value })}
+                                    />
+                                    {/* 대표 메뉴/상품 (선택) */}
+                                    <input
+                                        type="text"
+                                        placeholder="대표 메뉴·상품 (선택): 예) 물회, 아메리카노, 수제버터바"
+                                        className="w-full h-12 bg-gray-50 border-transparent rounded-xl px-4 text-sm font-medium focus:bg-white focus:border-primary focus:outline-none transition-all"
+                                        value={newBrand.signatureMenu}
+                                        onChange={e => setNewBrand({ ...newBrand, signatureMenu: e.target.value })}
+                                    />
+                                    {/* 한 줄 소개 (선택) */}
+                                    <input
+                                        type="text"
+                                        placeholder="한 줄 소개 (선택): 예) 강남역 인근 프렌치 감성 카페"
+                                        className="w-full h-12 bg-gray-50 border-transparent rounded-xl px-4 text-sm font-medium focus:bg-white focus:border-primary focus:outline-none transition-all"
+                                        value={newBrand.storeDescription}
+                                        onChange={e => setNewBrand({ ...newBrand, storeDescription: e.target.value })}
+                                    />
 
                                     {/* AI 분석 버튼 */}
                                     <button
                                         type="button"
                                         onClick={handleAIAnalyze}
-                                        disabled={isAILoading || !newBrand.placeUrl?.trim()}
-                                        className="w-full h-16 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-black text-lg rounded-2xl flex items-center justify-center gap-3 hover:shadow-xl active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                        disabled={isAILoading || !newBrand.name || !newBrand.address?.trim() || !newBrand.category?.trim()}
+                                        className="w-full h-14 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-black rounded-2xl flex items-center justify-center gap-2 hover:shadow-lg active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {isAILoading ? (
                                             <>
-                                                <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin" />
+                                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                                 AI 분석 중...
                                             </>
                                         ) : (
                                             <>
-                                                <Sparkles size={24} /> AI로 길찾기 미션 자동 생성
+                                                <Sparkles size={20} /> AI로 길찾기 미션 생성하기
                                             </>
                                         )}
                                     </button>
-
-                                    {/* 선택 입력 (펼치기/접기) */}
-                                    <details className="bg-gray-50 rounded-xl p-4">
-                                        <summary className="cursor-pointer text-sm font-bold text-gray-600 hover:text-gray-800">
-                                            ⚙️ 추가 정보 입력 (선택) - 크롤링 실패 시에만 사용
-                                        </summary>
-                                        <div className="mt-4 space-y-3">
-                                            {/* 주소 (선택) */}
-                                            <input
-                                                type="text"
-                                                placeholder="주소 (선택): 예) 서울 강남구 역삼동 123"
-                                                className="w-full h-12 bg-white border border-gray-200 rounded-xl px-4 text-sm focus:border-primary focus:outline-none"
-                                                value={newBrand.address}
-                                                onChange={e => setNewBrand({ ...newBrand, address: e.target.value })}
-                                            />
-                                            {/* 카테고리 (선택) */}
-                                            <input
-                                                type="text"
-                                                placeholder="카테고리 (선택): 예) 카페, 맛집, 바"
-                                                className="w-full h-12 bg-white border border-gray-200 rounded-xl px-4 text-sm focus:border-primary focus:outline-none"
-                                                value={newBrand.category}
-                                                onChange={e => setNewBrand({ ...newBrand, category: e.target.value })}
-                                            />
-                                            {/* 대표 메뉴 (선택) */}
-                                            <input
-                                                type="text"
-                                                placeholder="대표 메뉴 (선택): 예) 수제버거, 생면파스타"
-                                                className="w-full h-12 bg-white border border-gray-200 rounded-xl px-4 text-sm focus:border-primary focus:outline-none"
-                                                value={newBrand.signatureMenu}
-                                                onChange={e => setNewBrand({ ...newBrand, signatureMenu: e.target.value })}
-                                            />
-                                            {/* 한 줄 소개 (선택) */}
-                                            <input
-                                                type="text"
-                                                placeholder="한 줄 소개 (선택): 예) 강남역 인근 LP바"
-                                                className="w-full h-12 bg-white border border-gray-200 rounded-xl px-4 text-sm focus:border-primary focus:outline-none"
-                                                value={newBrand.storeDescription}
-                                                onChange={e => setNewBrand({ ...newBrand, storeDescription: e.target.value })}
-                                            />
-                                        </div>
-                                    </details>
 
                                     {/* AI 분석 결과 */}
                                     {aiResult && (
@@ -711,7 +701,23 @@ const AdminDashboard: React.FC = () => {
                                                         />
                                                     </div>
                                                 </div>
+                                                
+                                                {/* 도보 시간 확인 버튼 */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const naverMapUrl = `https://map.naver.com/p/directions/-/${encodeURIComponent(newBrand.name)}/walk?c=15,0,0,0,dh`;
+                                                        window.open(naverMapUrl, '_blank');
+                                                    }}
+                                                    className="w-full h-10 bg-blue-500 hover:bg-blue-600 text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95"
+                                                >
+                                                    <Map size={16} />
+                                                    네이버 지도에서 도보 시간 확인하기
+                                                    <ExternalLink size={14} />
+                                                </button>
                                             </div>
+
+                                            {/* AI 근거는 숨김 (내부적으로만 사용) */}
                                         </motion.div>
                                     )}
                                 </div>

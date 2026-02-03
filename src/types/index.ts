@@ -62,22 +62,23 @@ export interface WalkingMissionData {
 // AI 분석 결과
 export interface AIAnalysisResult {
     status: 'success' | 'fail';
-    store_analysis: {
+    store_analysis?: {
         summary: string;
         vibe: string;
     };
-    seo_strategy: {
+    seo_strategy?: {
         target_keywords: string[];
         competitiveness: string;
     };
-    user_mission: {
+    user_mission?: {
         start_point: string;
         selected_keyword: string;
         quiz_question: string;
         correct_answer: string;
+        bicycle_time?: string; // 자전거 시간 (선택)
     };
-    actual_address: string;
-    reasoning: string;
+    actual_address?: string;
+    reasoning?: string; // 실패 시 또는 추가 설명
 }
 
 // 통합 미션 데이터

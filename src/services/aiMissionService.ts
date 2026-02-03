@@ -1,255 +1,432 @@
-// aiMissionService.ts - AI 기반 매장 분석 및 미션 생성
+import type { AIAnalysisResult } from '../types';
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
-/** AI 분석 입력 타입 */
-export interface AnalyzeInput {
-    placeUrl: string; // 필수! 네이버 플레이스 URL
-    storeName?: string; // 선택 (크롤링 실패 시 사용)
-    address?: string; // 선택 (크롤링 실패 시 사용)
-    category?: string; // 선택 (크롤링 실패 시 사용)
+if (!GEMINI_API_KEY) {
+    console.warn('⚠️ Gemini API 키가 설정되지 않았습니다. .env 파일에 VITE_GEMINI_API_KEY를 추가해주세요.');
+}
+
+/** 캐시 항목 (30분 유효) */
+const CACHE_TTL_MS = 30 * 60 * 1000;
+const analysisCache = new Map<string, { result: AIAnalysisResult; expiresAt: number }>();
+
+interface AnalyzeInput {
+    storeName: string;
+    address: string;
+    category: string;
     signatureMenu?: string;
     storeDescription?: string;
 }
 
-/** AI 분석 결과 */
-export interface AIAnalysisResult {
-    success: boolean;
-    keywordList: string[];
-    user_mission: {
-        question: string;
-        choices: string[];
-        answer: number;
-        walking_time: string;
-        bicycle_time: string;
-    };
-    summary: string;
-    reasoning?: string;
-}
+/**
+ * AI로 매장 분석 및 미션 생성
+ * Gemini API를 사용하여 SEO 키워드와 도보 미션 자동 생성
+ */
+/** AI 분석용 프롬프트 생성 */
+function buildAnalysisPrompt(input: AnalyzeInput): string {
+    const { storeName, address, category, signatureMenu, storeDescription } = input;
+    const extraLines: string[] = [];
+    if (category) extraLines.push(`- **Category**: ${category}`);
+    if (signatureMenu) extraLines.push(`- **Signature menu / product**: ${signatureMenu}`);
+    if (storeDescription) extraLines.push(`- **One-line description / vibe**: ${storeDescription}`);
+    const extraBlock = extraLines.length ? '\n' + extraLines.join('\n') : '';
 
-/** 전문적인 SEO 분석 프롬프트 */
-function buildProfessionalPrompt(input: AnalyzeInput, scrapedInfo?: any): string {
-    // 크롤링 데이터가 있으면 우선 사용
-    const storeName = scrapedInfo?.name || input.storeName || '매장명 확인 필요';
-    const address = scrapedInfo?.address || input.address || '주소 확인 필요';
-    const category = scrapedInfo?.category || input.category || '';
-    const { signatureMenu, storeDescription, placeUrl } = input;
-    
-    return `# [ROLE: 로컬 비즈니스 SEO & 마케팅 전문가]
+    return `
+# [CRITICAL ROLE: NAVER MAP SEO & WALKING MISSION EXPERT]
 
-당신은 네이버 플레이스 SEO 최적화 전문가입니다. 주어진 매장 정보를 분석하여 **실제로 검색되는 SEO 키워드**를 생성하세요.
+당신은 네이버 지도 SEO 전문가이자 도보 미션 설계자입니다.
+사장님들이 "검색했는데 우리 가게가 안 나와요!"라고 불평하지 않도록,
+**실제로 검색하면 지도에 매장이 뜨는 키워드**를 만들어야 합니다.
 
-## [입력 정보]
-- **매장명**: ${storeName}
-- **주소**: ${address}
-${category ? `- **카테고리**: ${category}` : ''}
-${signatureMenu ? `- **시그니처**: ${signatureMenu}` : ''}
-${storeDescription ? `- **특징**: ${storeDescription}` : ''}
-- **🔗 네이버 플레이스**: ${placeUrl}
+## [INPUT DATA]
+- **Store Name**: ${storeName}
+- **Address**: ${address}${extraBlock}
 
-${scrapedInfo ? `
-## [실제 크롤링 데이터]
-- **평점**: ${scrapedInfo.rating} (리뷰 ${scrapedInfo.reviewCount}개)
-- **대표 메뉴**: ${scrapedInfo.menus.slice(0, 5).join(', ')}
-- **주요 키워드**: ${scrapedInfo.keywords.join(', ')}
-- **대표 리뷰**: ${scrapedInfo.reviews.slice(0, 3).join(' / ')}
-` : ''}
+## [CRITICAL RULES - 반드시 준수]
 
----
+### 1️⃣ 네이버 지도 강제 노출 키워드 구조
+- **끝은 반드시 명사**: 카페, 맛집, 식당, 바, 가게, 샵 등
+- **금지**: 형용사 끝 (좋은, 예쁜, 맛있는 등으로 끝나면 블로그만 뜸!)
+- **공식**: [지역명] + [구체적 특징/니즈] + [카테고리 명사]
 
-## [OUTPUT 규칙]
+### 2️⃣ 매장명 절대 금지
+- target_keywords와 selected_keyword에 **매장명(${storeName})을 절대 넣지 마세요**
+- 대신 주소 기반 **지역명**(동/대로/역) + 카테고리 + 특징 조합
+- 목표: "이 키워드로 검색하면 우리 매장이 나오는" SEO 키워드
 
-### 1️⃣ 키워드 생성 (keywordList)
-**⚠️ 매장의 독특한 특징을 찾아내세요!**
+### 3️⃣ 출발지 선정 (출구 번호까지 정확하게!)
+- **출발지 형식: "역명 N번출구"** (예: "신사역 8번출구", "을지로3가역 5번출구")
+- **선정 기준:**
+  1. 주소에서 가장 가까운 지하철역 선택 (500m 이내)
+  2. **반드시 출구 번호 포함** (1~10번 중 매장에 가장 가까운 출구)
+  3. 도보로 1-15분 거리가 적절
+  4. 지하철역이 없으면 버스정류장이나 랜드마크 사용
+- **예시:**
+  - ✅ "한성대입구역 6번출구" (출구 번호 있음)
+  - ✅ "신사역 8번출구" (출구 번호 있음)
+  - ❌ "한성대입구역" (출구 번호 없음)
+  - ❌ "신사역" (출구 번호 없음)
+- **도보/자전거 시간은 네이버 지도 기준으로 정확히 계산**
+  - 절대 짧게 말하지 마세요! (실제 12분인데 5분이라고 하면 사용자가 화냄!)
 
-**좋은 예시:**
-- "lp바", "수제버거", "클래식음악", "루프탑", "애견동반", "24시간카페"
-- "신사동맛집", "이태원카페", "홍대술집", "강남디저트"
+### 4️⃣ 3개의 다양한 SEO 키워드 제시
+각각 다른 각도로 접근:
+1. 지역 + 대표메뉴 + 카테고리
+2. 지역 + 분위기/특징 + 카테고리
+3. 지역 + 타겟고객 + 카테고리
 
-**나쁜 예시:**
-- ❌ 매장명 포함 ("카페ABC", "ABC레스토랑")
-- ❌ 초광범위 ("서울맛집", "맛집추천")
-- ❌ 중복/유사 ("강남카페" + "강남에서카페")
+**⚠️ 실제 고객 리뷰 키워드 참고:**
+- 다이닝코드, 네이버 플레이스, 구글 리뷰에서 실제로 고객들이 많이 쓰는 키워드 반영
+- 예: "데이트하기 좋은", "혼밥 가능한", "인스타 감성", "뷰 맛집", "가성비 좋은" 등
+- 매장의 실제 강점과 고객 반응을 키워드에 녹여내세요
 
-**필수 조건:**
-- 정확히 **5개** 생성
-- 각 키워드는 **명사**로 끝나야 함
-- 각 키워드는 **서로 다른 검색 의도** 반영
-- 띄어쓰기 없는 복합명사 선호 ("애견동반카페" O, "애견 동반 카페" X)
+### 5️⃣ 구체성 vs 경쟁력 균형 (실제 검색어 기반)
+- 너무 일반적: "강남 맛집" → 경쟁자만 나옴 ❌
+- 너무 구체적: "강남역 3번출구 앞 파스타 맛집" → 검색량 0 ❌
+- 적절한 구체성: "강남 수제파스타 맛집" → 우리 매장 노출 ✅
 
-### 2️⃣ 도보/자전거 시간 (user_mission)
-- **walking_time**: "도보 X분" 형식 (실제 거리 기반, 네이버 지도 기준)
-- **bicycle_time**: "자전거 Y분" 형식 (도보의 1/3 정도)
+**실제 고객들이 검색하는 방식:**
+- "지역 + 상황/니즈 + 카테고리" (예: "성수동 데이트 카페")
+- "지역 + 메뉴특징 + 카테고리" (예: "홍대 수제버거 맛집")
+- "지역 + 분위기 + 카테고리" (예: "이태원 힙한 바")
 
-### 3️⃣ 퀴즈 생성 (user_mission)
-- **question**: 매장의 핵심 특징을 묻는 질문
-- **choices**: 4개의 선택지 (1개 정답, 3개 오답)
-- **answer**: 정답 번호 (0~3)
+다이닝코드, 인스타그램 해시태그, 네이버 연관검색어에서 실제로 사용되는 표현을 참고하세요.
 
-### 4️⃣ 요약 (summary)
-- 1~2문장으로 매장의 핵심 특징 요약
-- SEO 키워드 자연스럽게 포함
+## [JSON OUTPUT FORMAT]
 
----
+반드시 아래 JSON 형식만 출력하세요. 설명이나 다른 텍스트는 절대 포함하지 마세요.
 
-## [JSON 출력 형식]
-
-\`\`\`json
+성공 시:
 {
-  "success": true,
-  "keywordList": ["키워드1", "키워드2", "키워드3", "키워드4", "키워드5"],
-  "user_mission": {
-    "question": "이 매장의 대표 메뉴는?",
-    "choices": ["선택지1", "선택지2", "선택지3", "선택지4"],
-    "answer": 0,
-    "walking_time": "도보 5분",
-    "bicycle_time": "자전거 2분"
+  "status": "success",
+  "store_analysis": {
+    "summary": "매장의 핵심 특징과 경쟁력을 2-3문장으로 요약 (지도 노출 최적화 관점)\n⚠️ 실제 고객 리뷰 키워드를 반영하세요 (다이닝코드, 네이버, 인스타 등)",
+    "vibe": "네이버 검색 알고리즘이 인식하기 좋은 매장 특성 (카테고리, 분위기, 타겟층)\n실제 고객들이 많이 언급하는 키워드 중심으로"
   },
-  "summary": "매장 특징 요약",
-  "reasoning": "키워드 선정 근거"
+  "seo_strategy": {
+    "target_keywords": [
+      "지역+대표메뉴+카테고리 (매장명 제외, 실제 검색어 기반)",
+      "지역+분위기+카테고리 (다이닝코드/인스타 해시태그 참고)",
+      "지역+타겟고객+카테고리 (실제 고객 리뷰 반영)"
+    ],
+    "competitiveness": "각 키워드별 경쟁력과 노출 가능성 분석 (2-3문장)\n실제 검색 시 이 매장이 상위 노출될 가능성과 이유"
+  },
+  "user_mission": {
+    "start_point": "가장 가까운 지하철역 + 출구번호 (예: 신사역 8번출구, 한성대입구역 6번출구)\n⚠️ 반드시 출구 번호를 포함하세요! (N번출구)",
+    "selected_keyword": "target_keywords 중 가장 효과적인 1개 (매장명 제외, 검색 시 이 매장이 나오도록)",
+    "quiz_question": "출발지에서 매장까지 도보로 몇 분 걸릴까요?",
+    "correct_answer": "N분 (⚠️ 네이버 지도 실제 도보 시간, 절대 과소평가 금지!)",
+    "bicycle_time": "N분 (자전거 시간, 보통 도보의 40-50% 정도)",
+    "guide_text": "네이버 지도 앱에서 '${storeName}'을(를) 검색하여 실제 도보 시간을 확인하세요."
+  },
+  "actual_address": "${address} (입력된 주소 그대로 반환)",
+  "reasoning": "키워드가 명사로 끝나고, 매장명 없이도 검색 가능하며, 도보 시간이 정확한 이유 설명"
 }
-\`\`\`
 
----
-
-## [주의사항]
-- "이 매장" 같은 지시어 사용 금지
-- "강남 맛집" 같은 초광범위 키워드
-- 매장명 포함 ("${storeName}" X)
-- 형용사로 끝나는 키워드
-- fail 처리 (반드시 success로 결과 생성)
-`;
+실패 시:
+{
+  "status": "fail",
+  "reason": "데이터 확인 불가 또는 주소 정보 부족"
 }
 
-/** JSON 추출 */
-function extractJSON(text: string): string {
-    const jsonMatch = text.match(/```json\s*([\s\S]+?)```/);
-    if (jsonMatch?.[1]) return jsonMatch[1].trim();
-    
+## [ADDITIONAL CONTEXT]
+${category ? `- 카테고리(${category})를 키워드에 반드시 반영하세요.` : ''}
+${signatureMenu ? `- 시그니처 메뉴(${signatureMenu})를 키워드 후보에 활용하세요.` : ''}
+${storeDescription ? `- 한 줄 소개(${storeDescription})를 참고해 차별화된 키워드를 만드세요.` : ''}
+
+**🎯 실제 리뷰 플랫폼 키워드 참고:**
+- 다이닝코드에서 이 매장과 비슷한 타입의 매장에 달린 리뷰 키워드 분석
+- "데이트", "혼밥", "가성비", "분위기", "인스타", "뷰맛집" 같은 실제 검색어
+- 고객들이 실제로 매장을 찾을 때 쓰는 자연스러운 표현 사용
+
+## [FINAL VALIDATION CHECKLIST]
+✅ target_keywords에 "${storeName}" 포함 안 됨
+✅ selected_keyword가 "[지역]+[특징]+[명사]" 구조
+✅ 모든 키워드가 명사로 끝남 (카페/맛집/식당/바/샵)
+✅ start_point에 출구 번호 포함 (예: "신사역 8번출구", "한성대입구역 6번출구")
+✅ 도보 시간이 과소평가되지 않음
+✅ 출발지가 500m 이내 가까운 역
+✅ JSON 형식만 출력 (설명 없음)
+
+**지금 바로 JSON만 생성하세요. 다른 설명은 절대 쓰지 마세요.**
+    `.trim();
+}
+
+/** AI 응답 텍스트에서 JSON 객체 추출 */
+function extractJsonFromResponse(text: string): string {
+    const blockMatch = text.match(/```json\s*([\s\S]+?)```/);
+    if (blockMatch?.[1]) return blockMatch[1].trim();
     const start = text.indexOf('{');
     const end = text.lastIndexOf('}') + 1;
     if (start >= 0 && end > start) return text.substring(start, end);
-    
     return text.trim();
 }
 
-/** 크롤링 데이터 가져오기 */
-async function scrapeNaverPlace(placeUrl: string): Promise<{ text: string; data?: any }> {
-    try {
-        // 로컬 개발 환경에서는 크롤링 건너뛰기
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            console.log('🔧 로컬 환경: 크롤링 건너뛰고 AI 웹 검색 사용');
-            return { text: '' };
-        }
-        
-        console.log('🔍 네이버 플레이스 크롤링...');
-        const res = await fetch('/api/scrape-naver', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ placeUrl })
-        });
-        
-        if (res.ok) {
-            const result = await res.json();
-            if (result.success) {
-                console.log('✅ 크롤링 성공!', result.data);
-                return {
-                    text: `\n\n# [실제 크롤링 데이터]\n${result.analysisText}\n`,
-                    data: result.data
-                };
-            }
-        }
-    } catch (err) {
-        console.warn('⚠️ 크롤링 실패:', err);
+/** AI 응답 결과 검증 */
+function validateAIResult(result: AIAnalysisResult): { valid: boolean; errors: string[] } {
+    const errors: string[] = [];
+
+    // 필수 필드 검증
+    if (!result.store_analysis?.summary) {
+        errors.push('- 매장 분석 요약이 없습니다.');
     }
-    return { text: '' };
+    if (!result.store_analysis?.vibe) {
+        errors.push('- 매장 분위기 정보가 없습니다.');
+    }
+
+    // SEO 전략 검증
+    if (!result.seo_strategy?.target_keywords || result.seo_strategy.target_keywords.length === 0) {
+        errors.push('- SEO 키워드가 생성되지 않았습니다.');
+    }
+    if (result.seo_strategy?.target_keywords && result.seo_strategy.target_keywords.length < 3) {
+        errors.push('- SEO 키워드가 3개 미만입니다. (최소 3개 필요)');
+    }
+
+    // 미션 정보 검증
+    if (!result.user_mission?.start_point) {
+        errors.push('- 출발지 정보가 없습니다.');
+    } else {
+        // 출구 번호 포함 여부 검증
+        const hasExitNumber = /\d+번출구/.test(result.user_mission.start_point);
+        if (!hasExitNumber && result.user_mission.start_point.includes('역')) {
+            errors.push('- 출발지에 출구 번호가 없습니다. (예: "신사역 8번출구")');
+        }
+    }
+    if (!result.user_mission?.selected_keyword) {
+        errors.push('- 선택된 키워드가 없습니다.');
+    }
+    if (!result.user_mission?.quiz_question) {
+        errors.push('- 퀴즈 질문이 없습니다.');
+    }
+    if (!result.user_mission?.correct_answer) {
+        errors.push('- 정답이 없습니다.');
+    }
+
+    // 정답 형식 검증 (N분 형식인지 확인)
+    if (result.user_mission?.correct_answer && !result.user_mission.correct_answer.match(/\d+분/)) {
+        errors.push('- 정답이 "N분" 형식이 아닙니다.');
+    }
+
+    // 키워드에 매장명이 포함되어 있는지 검증 (금지)
+    const storeName = result.actual_address || '';
+    if (result.user_mission?.selected_keyword && storeName && 
+        result.user_mission.selected_keyword.includes(storeName.split(' ')[0])) {
+        errors.push('- 선택된 키워드에 매장명이 포함되어 있습니다. (매장명 제외 필요)');
+    }
+
+    return {
+        valid: errors.length === 0,
+        errors
+    };
 }
 
-/** Gemini AI 호출 */
-async function callGemini(prompt: string, placeUrl: string, useWebSearch: boolean): Promise<string> {
-    const models = ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash', 'gemini-exp-1206'];
-    
-    // 웹 검색 명령 추가
-    const searchCommand = useWebSearch ? `\n\n🔍 **필수**: "${placeUrl}" 이 URL로 직접 접속해서 매장 정보를 확인하세요! 추측하지 마세요!` : '';
-    const finalPrompt = prompt + searchCommand;
-    
-    for (const model of models) {
-        try {
-            console.log(`🟢 ${model} 시도...`);
-            const res = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: finalPrompt }] }],
-                        generationConfig: {
-                            temperature: 0.5, // 더 정확하게
-                            maxOutputTokens: 8192,
-                        },
-                        ...(useWebSearch && { tools: [{ google_search: {} }] })
-                    })
-                }
+export const analyzePlaceWithAI = async ({ storeName, address, category, signatureMenu, storeDescription }: AnalyzeInput): Promise<AIAnalysisResult> => {
+    try {
+        if (!GEMINI_API_KEY) {
+            throw new Error(
+                'Gemini API 키가 설정되지 않았습니다.\n\n' +
+                '해결 방법:\n' +
+                '1. Google AI Studio에서 API 키 발급: https://aistudio.google.com/app/apikey\n' +
+                '2. .env 파일에 VITE_GEMINI_API_KEY=발급받은_키 추가\n' +
+                '3. 개발 서버 재시작 (npm run dev)'
             );
-            
-            if (res.ok) {
-                const data = await res.json();
-                const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-                if (text) {
-                    console.log(`✅ ${model} 성공!`);
-                    return text;
-                }
-            }
-        } catch (err) {
-            console.warn(`${model} 실패:`, err);
         }
-    }
-    
-    throw new Error('모든 Gemini 모델 실패');
-}
 
-/** 캐시 (중복 요청 방지) */
-const analysisCache = new Map<string, AIAnalysisResult>();
+        const prompt = buildAnalysisPrompt({ storeName, address, category, signatureMenu, storeDescription });
 
-/** AI 매장 분석 (메인 함수) */
-export async function analyzePlaceWithAI(input: AnalyzeInput): Promise<AIAnalysisResult> {
-    const { placeUrl } = input;
-    
-    // 캐시 확인
-    if (analysisCache.has(placeUrl)) {
-        console.log('✅ 캐시에서 결과 반환');
-        return analysisCache.get(placeUrl)!;
-    }
-    
-    try {
-        // 1단계: 크롤링 시도 (배포 환경에서만)
-        const { text: scrapedText, data: scrapedData } = await scrapeNaverPlace(placeUrl);
+        // 캐시 확인 (30분 유효)
+        const cached = analysisCache.get(prompt);
+        if (cached && cached.expiresAt > Date.now()) {
+            console.log('✅ AI 분석 캐시 적중');
+            return cached.result;
+        }
+
+        let text = '';
+
+        // Gemini API 호출 (다중 모델 폴백)
+        let response: Response | undefined;
+        const models = [
+            'gemini-2.0-flash',      // 2.0 Flash (안정, 1순위)
+            'gemini-2.0-flash-exp',  // 최신 실험 모델
+            'gemini-1.5-flash',      // 1.5 Flash
+            'gemini-1.5-pro',        // 1.5 Pro (고품질)
+        ];
         
-        // 2단계: 프롬프트 생성 (크롤링 데이터 포함)
-        const prompt = buildProfessionalPrompt(input, scrapedData);
+        let lastError;
+        let successModel = '';
         
-        // 3단계: AI 호출 (크롤링 성공 시 웹 검색 비활성화)
-        const useWebSearch = !scrapedText;
-        const aiResponse = await callGemini(prompt, placeUrl, useWebSearch);
+        for (const model of models) {
+            try {
+                console.log(`🔄 Gemini 모델 시도: ${model}`);
+                response = await fetch(
+                    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [{
+                                    text: prompt
+                                }]
+                            }],
+                            generationConfig: {
+                                temperature: 0.7,
+                                topP: 0.95,
+                                topK: 40,
+                                maxOutputTokens: 8192,
+                                responseMimeType: 'application/json', // JSON 응답 강제
+                            },
+                            safetySettings: [
+                                {
+                                    category: 'HARM_CATEGORY_HARASSMENT',
+                                    threshold: 'BLOCK_NONE'
+                                },
+                                {
+                                    category: 'HARM_CATEGORY_HATE_SPEECH',
+                                    threshold: 'BLOCK_NONE'
+                                },
+                                {
+                                    category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+                                    threshold: 'BLOCK_NONE'
+                                },
+                                {
+                                    category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+                                    threshold: 'BLOCK_NONE'
+                                }
+                            ]
+                        })
+                    }
+                );
+                
+                if (response.ok) {
+                    successModel = model;
+                    console.log(`✅ AI 분석 완료 (Gemini ${model})`);
+                    break;
+                }
+                lastError = await response.json().catch(() => ({}));
+                console.warn(`❌ ${model} 실패:`, lastError);
+            } catch (error) {
+                console.warn(`❌ ${model} 오류:`, error);
+                lastError = error;
+            }
+        }
+
+        if (!response || !response.ok) {
+            const errorData = lastError || {};
+            console.error('❌ 모든 Gemini 모델 실패. 마지막 오류:', errorData);
+            throw new Error(
+                `Gemini API 호출 실패 (상태: ${response?.status || 'FAILED'})\n\n` +
+                `오류 메시지: ${(errorData as { error?: { message?: string } })?.error?.message || '모든 모델 접근 실패'}\n\n` +
+                `해결 방법:\n` +
+                `1. API 키 재발급: https://aistudio.google.com/app/apikey\n` +
+                `2. API 키가 활성화되었는지 확인\n` +
+                `3. 브라우저 콘솔에서 geminiTest.connection() 실행하여 테스트`
+            );
+        }
+
+        const data = await response.json();
+        console.log(`📊 Gemini ${successModel} 응답:`, JSON.stringify(data, null, 2));
         
-        // 4단계: JSON 파싱
-        const jsonText = extractJSON(aiResponse);
-        const result: AIAnalysisResult = JSON.parse(jsonText);
-        
-        // 캐시 저장
-        analysisCache.set(placeUrl, result);
-        
-        console.log('✅ AI 분석 완료:', result);
+        text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+        if (!text) {
+            throw new Error('Gemini API 응답이 비어있습니다. 모델이 응답을 생성하지 못했습니다.');
+        }
+
+        console.log("🔍 AI 원본 응답:", text.substring(0, 500) + (text.length > 500 ? '...' : ''));
+
+        // JSON 파싱 (멀티라인 지원)
+        let result: AIAnalysisResult;
+        try {
+            const jsonStr = extractJsonFromResponse(text);
+            result = JSON.parse(jsonStr);
+            console.log("✅ JSON 파싱 성공:", result);
+        } catch (e) {
+            console.error("❌ JSON 파싱 오류:", e, "\n원본 응답:", text);
+            throw new Error(
+                "AI 응답을 파싱할 수 없습니다.\n\n" +
+                "가능한 원인:\n" +
+                "1. Gemini가 유효한 JSON을 생성하지 못함\n" +
+                "2. 응답이 안전 필터에 의해 차단됨\n" +
+                "3. 프롬프트가 너무 복잡함\n\n" +
+                "브라우저 콘솔에서 geminiTest.ask('테스트 메시지')로 API 연결을 확인하세요."
+            );
+        }
+
+        if (result.status === 'fail') {
+            throw new Error(result.reasoning || "매장 정보를 확인할 수 없습니다.");
+        }
+
+        if (!result.store_analysis || !result.seo_strategy || !result.user_mission) {
+            console.error("❌ 불완전한 AI 응답:", result);
+            throw new Error(
+                "AI가 불완전한 데이터를 생성했습니다.\n\n" +
+                "누락된 항목:\n" +
+                `- store_analysis: ${result.store_analysis ? '✓' : '✗'}\n` +
+                `- seo_strategy: ${result.seo_strategy ? '✓' : '✗'}\n` +
+                `- user_mission: ${result.user_mission ? '✓' : '✗'}\n\n` +
+                "다시 시도하거나 매장 정보를 더 자세히 입력해주세요."
+            );
+        }
+
+        // 데이터 검증 강화
+        const validation = validateAIResult(result);
+        if (!validation.valid) {
+            console.error("❌ AI 응답 검증 실패:", validation.errors);
+            throw new Error(
+                "AI 응답 검증 실패:\n\n" +
+                validation.errors.join('\n')
+            );
+        }
+
+        // 캐시 저장 (30분)
+        analysisCache.set(prompt, {
+            result,
+            expiresAt: Date.now() + CACHE_TTL_MS,
+        });
+
+        console.log("✅ AI 미션 생성 완료:", {
+            selectedKeyword: result.user_mission.selected_keyword,
+            startPoint: result.user_mission.start_point,
+            correctAnswer: result.user_mission.correct_answer,
+        });
+
         return result;
-        
-    } catch (err) {
-        console.error('AI 분석 실패:', err);
-        throw err;
+    } catch (error) {
+        console.error("❌ AI 분석 실패:", error);
+        throw error;
     }
-}
+};
 
-/** 네이버 지도 검색 URL 생성 */
-export function getNaverSearchUrl(address: string, storeName: string): string {
-    const query = encodeURIComponent(`${address} ${storeName}`);
-    return `https://map.naver.com/p/search/${query}`;
-}
+/**
+ * 네이버 지도 검색 URL 생성
+ */
+export const getNaverMapSearchUrl = (keyword: string): string => {
+    return `https://map.naver.com/v5/search/${encodeURIComponent(keyword)}`;
+};
+
+/**
+ * 네이버 지도 길찾기 URL 생성 (출발지 → 도착지)
+ * @param _startPoint 출발지 (예: "한성대입구역 6번출구")
+ * @param destination 도착지 (매장명 또는 주소)
+ * @param _type 교통수단 (walk: 도보, bike: 자전거)
+ */
+export const getNaverMapDirectionsUrl = (
+    _startPoint: string, 
+    destination: string,
+    _type: 'walk' | 'bike' = 'walk'
+): string => {
+    const baseUrl = 'https://map.naver.com/p/directions';
+    // 네이버 지도 길찾기 URL 형식
+    // 출발지와 도착지를 쿼리로 전달
+    return `${baseUrl}/-/${encodeURIComponent(destination)}/walk?c=15,0,0,0,dh`;
+};
+
+/**
+ * 네이버 검색 URL 생성 (검증용)
+ */
+export const getNaverSearchUrl = (keyword: string): string => {
+    return `https://search.naver.com/search.naver?query=${encodeURIComponent(keyword)}`;
+};

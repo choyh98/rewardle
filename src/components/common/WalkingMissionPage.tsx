@@ -24,7 +24,6 @@ export const WalkingMissionPage: React.FC<WalkingMissionPageProps> = ({
     walkingData,
     storeName,
     storeImage,
-    placeUrl,
     bonusPoints,
     onBack,
     onSuccess
@@ -246,17 +245,24 @@ export const WalkingMissionPage: React.FC<WalkingMissionPageProps> = ({
                         </div>
 
                         {/* 미션 시작 버튼 */}
-                        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
+                        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 space-y-2">
                             <button
                                 onClick={() => {
-                                    // placeUrl이 있으면 그걸로, 없으면 네이버 홈으로
-                                    const url = placeUrl || 'https://map.naver.com';
-                                    window.open(url, '_blank');
+                                    const naverMapUrl = `https://map.naver.com/p/directions/-/${encodeURIComponent(storeName)}/walk?c=15,0,0,0,dh`;
+                                    window.open(naverMapUrl, '_blank');
                                     setStep('verify');
                                 }}
                                 className="w-full h-[56px] bg-[#ff6b6b] text-white font-black text-[17px] rounded-[16px] hover:bg-[#ff5252] active:scale-[0.98] transition-all shadow-lg flex items-center justify-center gap-2"
                             >
-                                {placeUrl ? '매장 페이지 열기' : '길찾기 시작하기'} <ChevronRight size={24} />
+                                <Navigation size={20} />
+                                네이버 지도로 길찾기
+                                <ChevronRight size={24} />
+                            </button>
+                            <button
+                                onClick={() => setStep('verify')}
+                                className="w-full h-[48px] bg-gray-100 text-gray-700 font-bold text-[15px] rounded-[12px] hover:bg-gray-200 active:scale-[0.98] transition-all"
+                            >
+                                직접 확인했어요
                             </button>
                         </div>
                     </motion.div>
@@ -309,13 +315,23 @@ export const WalkingMissionPage: React.FC<WalkingMissionPageProps> = ({
                             </div>
                         </div>
 
-                        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
+                        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 space-y-2">
                             <button
                                 onClick={handleVerify}
                                 disabled={!userAnswer.trim()}
                                 className="w-full h-[56px] bg-[#ff6b6b] text-white font-black text-[17px] rounded-[16px] hover:bg-[#ff5252] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
                             >
                                 정답 제출하기
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const naverMapUrl = `https://map.naver.com/p/directions/-/${encodeURIComponent(storeName)}/walk?c=15,0,0,0,dh`;
+                                    window.open(naverMapUrl, '_blank');
+                                }}
+                                className="w-full h-[44px] bg-gray-100 text-gray-700 font-bold text-[14px] rounded-[12px] hover:bg-gray-200 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                            >
+                                <Navigation size={16} />
+                                네이버 지도 다시 보기
                             </button>
                         </div>
                     </motion.div>
