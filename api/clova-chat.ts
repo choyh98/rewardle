@@ -1,9 +1,9 @@
 /**
  * CLOVA Studio 프록시 API (CORS 회피)
  * 브라우저 → 이 API → CLOVA Studio
- * Vercel 환경 변수: CLOVA_STUDIO_CLIENT_ID, CLOVA_STUDIO_CLIENT_SECRET, CLOVA_STUDIO_ENDPOINT(선택)
+ * Vercel 환경 변수: CLOVA_STUDIO_API_KEY (필수), CLOVA_STUDIO_ENDPOINT (선택)
  */
-const CLOVA_URL = 'https://clovastudio.stream.ntruss.com/v1/chat-completions';
+const CLOVA_BASE_URL = 'https://clovastudio.stream.ntruss.com';
 const TIMEOUT_MS = 15000;
 
 type Req = { method?: string; body?: string | Record<string, unknown> };
@@ -27,14 +27,13 @@ export default async function handler(req: Req, res: Res) {
     return res.status(405).json({ error: 'Method not allowed', received: req.method });
   }
 
-  const clientId = process.env.CLOVA_STUDIO_CLIENT_ID;
-  const clientSecret = process.env.CLOVA_STUDIO_CLIENT_SECRET;
+  const apiKey = process.env.CLOVA_STUDIO_API_KEY;
   const endpoint = process.env.CLOVA_STUDIO_ENDPOINT || 'HCX-005';
 
-  if (!clientId || !clientSecret) {
+  if (!apiKey) {
     return res.status(503).json({
       error: 'CLOVA not configured',
-      message: 'Vercel에 CLOVA_STUDIO_CLIENT_ID, CLOVA_STUDIO_CLIENT_SECRET을 설정하세요.',
+      message: 'Vercel에 CLOVA_STUDIO_API_KEY를 설정하세요.',
     });
   }
 
@@ -50,12 +49,11 @@ export default async function handler(req: Req, res: Res) {
   const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
   try {
-    const response = await fetch(`${CLOVA_URL}/${endpointParam}`, {
+    const response = await fetch(`${CLOVA_BASE_URL}/v1/chat-completions/${endpointParam}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-ncp-apigw-api-key-id': clientId,
-        'x-ncp-apigw-api-key': clientSecret,
+        'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         messages: [{ role: 'user', content: prompt }],

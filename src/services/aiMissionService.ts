@@ -4,7 +4,7 @@ const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const CLOVA_STUDIO_ENDPOINT = import.meta.env.VITE_CLOVA_STUDIO_ENDPOINT || 'HCX-005';
 
 if (!GEMINI_API_KEY) {
-    console.warn('⚠️ Gemini API 키가 없습니다. CLOVA는 /api/clova-chat 프록시로 시도되며, 배포 시 Vercel에 CLOVA_STUDIO_CLIENT_ID·CLIENT_SECRET을 설정하세요.');
+    console.warn('⚠️ Gemini API 키가 없습니다. CLOVA는 /api/clova-chat 프록시로 시도되며, 배포 시 Vercel에 CLOVA_STUDIO_API_KEY를 설정하세요.');
 }
 
 /** 캐시 항목 (30분 유효) */
@@ -160,7 +160,7 @@ export const analyzePlaceWithAI = async ({ storeName, address, category, signatu
             throw new Error(
                 'AI API 키가 설정되지 않았습니다.\n\n' +
                 '해결 방법:\n' +
-                '1. CLOVA: Vercel 대시보드에 CLOVA_STUDIO_CLIENT_ID, CLOVA_STUDIO_CLIENT_SECRET 설정 (NCP 인증 정보에서 발급)\n' +
+                '1. CLOVA: Vercel 대시보드에 CLOVA_STUDIO_API_KEY 설정 (NCP CLOVA Studio에서 발급)\n' +
                 '2. Gemini: Google AI Studio에서 API 키 발급 후 .env에 VITE_GEMINI_API_KEY 추가\n' +
                 '3. 개발 서버 재시작 (npm run dev)'
             );
