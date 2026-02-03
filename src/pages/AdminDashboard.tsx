@@ -23,7 +23,10 @@ const AdminDashboard: React.FC = () => {
         question: '',
         answer: '',
         placeUrl: '',
-        address: '' // AI 분석용
+        address: '',       // AI 분석용
+        category: '',      // 예: 카페, 맛집, 막걸리집
+        signatureMenu: '', // 대표 메뉴/상품
+        storeDescription: '' // 한 줄 소개, 분위기 (선택)
     });
     const [useNameForWordle, setUseNameForWordle] = useState(false);
     const [useNameForApple, setUseNameForApple] = useState(false);
@@ -60,6 +63,14 @@ const AdminDashboard: React.FC = () => {
             alert('매장명을 먼저 입력해주세요!');
             return;
         }
+        if (!newBrand.address?.trim()) {
+            alert('주소를 입력해주세요!');
+            return;
+        }
+        if (!newBrand.category?.trim()) {
+            alert('카테고리를 입력해주세요!');
+            return;
+        }
 
         setIsAILoading(true);
         setAiResult(null);
@@ -67,7 +78,10 @@ const AdminDashboard: React.FC = () => {
         try {
             const result = await analyzePlaceWithAI({
                 storeName: newBrand.name,
-                address: newBrand.address
+                address: newBrand.address.trim(),
+                category: newBrand.category.trim(),
+                signatureMenu: newBrand.signatureMenu || undefined,
+                storeDescription: newBrand.storeDescription || undefined
             });
 
             setAiResult(result);
@@ -538,20 +552,44 @@ const AdminDashboard: React.FC = () => {
                             {/* 길찾기 미션 폼 (AI 기반) */}
                             {missionType === 'walking' && (
                                 <div className="space-y-4">
-                                    {/* 주소 입력 (선택) */}
+                                    {/* 주소 입력 (필수) */}
                                     <input
                                         type="text"
-                                        placeholder="주소 (선택): 예) 송파구, 강남구"
+                                        placeholder="주소 (필수): 예) 서울 강남구 역삼동 123"
                                         className="w-full h-14 bg-gray-50 border-transparent rounded-2xl px-5 focus:bg-white focus:border-primary focus:outline-none transition-all font-medium"
                                         value={newBrand.address}
                                         onChange={e => setNewBrand({ ...newBrand, address: e.target.value })}
+                                    />
+                                    {/* 카테고리 (필수) */}
+                                    <input
+                                        type="text"
+                                        placeholder="카테고리 (필수): 예) 카페, 맛집, 막걸리집, 베이커리"
+                                        className="w-full h-12 bg-gray-50 border-transparent rounded-xl px-4 text-sm font-medium focus:bg-white focus:border-primary focus:outline-none transition-all"
+                                        value={newBrand.category}
+                                        onChange={e => setNewBrand({ ...newBrand, category: e.target.value })}
+                                    />
+                                    {/* 대표 메뉴/상품 (선택) */}
+                                    <input
+                                        type="text"
+                                        placeholder="대표 메뉴·상품 (선택): 예) 물회, 아메리카노, 수제버터바"
+                                        className="w-full h-12 bg-gray-50 border-transparent rounded-xl px-4 text-sm font-medium focus:bg-white focus:border-primary focus:outline-none transition-all"
+                                        value={newBrand.signatureMenu}
+                                        onChange={e => setNewBrand({ ...newBrand, signatureMenu: e.target.value })}
+                                    />
+                                    {/* 한 줄 소개 (선택) */}
+                                    <input
+                                        type="text"
+                                        placeholder="한 줄 소개 (선택): 예) 강남역 인근 프렌치 감성 카페"
+                                        className="w-full h-12 bg-gray-50 border-transparent rounded-xl px-4 text-sm font-medium focus:bg-white focus:border-primary focus:outline-none transition-all"
+                                        value={newBrand.storeDescription}
+                                        onChange={e => setNewBrand({ ...newBrand, storeDescription: e.target.value })}
                                     />
 
                                     {/* AI 분석 버튼 */}
                                     <button
                                         type="button"
                                         onClick={handleAIAnalyze}
-                                        disabled={isAILoading || !newBrand.name}
+                                        disabled={isAILoading || !newBrand.name || !newBrand.address?.trim() || !newBrand.category?.trim()}
                                         className="w-full h-14 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-black rounded-2xl flex items-center justify-center gap-2 hover:shadow-lg active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {isAILoading ? (

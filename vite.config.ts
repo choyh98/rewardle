@@ -1,10 +1,20 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
-export default defineConfig({
+// 로컬에서 CLOVA 프록시 사용 시 .env에 VITE_CLOVA_PROXY_TARGET=https://배포도메인.vercel.app 설정
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '')
+  const clovaProxyTarget = env.VITE_CLOVA_PROXY_TARGET
+
+  return {
   plugins: [react(), tailwindcss()],
+  server: {
+    proxy: clovaProxyTarget
+      ? { '/api': { target: clovaProxyTarget, changeOrigin: true } }
+      : undefined,
+  },
   build: {
     // 코드 스플리팅 최적화
     rollupOptions: {
@@ -32,4 +42,5 @@ export default defineConfig({
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom', 'framer-motion'],
   },
+  }
 })
