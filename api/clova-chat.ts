@@ -60,6 +60,9 @@ export default async function handler(req: Req, res: Res) {
         temperature: 0.7,
         maxTokens: 4096,
         topP: 0.8,
+        repeatPenalty: 5.0,
+        topK: 0,
+        includeAiFilters: false,
       }),
       signal: controller.signal,
     });
