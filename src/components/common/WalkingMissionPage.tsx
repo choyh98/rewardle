@@ -118,6 +118,8 @@ export const WalkingMissionPage: React.FC<WalkingMissionPageProps> = ({
                                 <img 
                                     src={storeImage} 
                                     alt={storeName}
+                                    loading="lazy"
+                                    decoding="async"
                                     className="w-full h-full object-cover"
                                 />
                             ) : (
