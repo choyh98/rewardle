@@ -9,29 +9,6 @@ interface BrandCache {
 
 let cachedBrands: BrandCache | null = null;
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24시간 (밀리초) - Egress 절감
-const LOCALSTORAGE_KEY = 'rewardle_brands_cache';
-
-// LocalStorage에서 캐시 로드
-const loadCacheFromStorage = (): BrandCache | null => {
-    try {
-        const stored = localStorage.getItem(LOCALSTORAGE_KEY);
-        if (!stored) return null;
-        const cache = JSON.parse(stored) as BrandCache;
-        return isCacheValid(cache) ? cache : null;
-    } catch (error) {
-        console.error('Failed to load cache from storage:', error);
-        return null;
-    }
-};
-
-// LocalStorage에 캐시 저장
-const saveCacheToStorage = (cache: BrandCache): void => {
-    try {
-        localStorage.setItem(LOCALSTORAGE_KEY, JSON.stringify(cache));
-    } catch (error) {
-        console.error('Failed to save cache to storage:', error);
-    }
-};
 
 // 캐시 유효성 검사
 const isCacheValid = (cache: BrandCache | null): boolean => {
@@ -46,14 +23,6 @@ export const fetchBrands = async (): Promise<Brand[]> => {
     if (isCacheValid(cachedBrands)) {
         console.log('✅ Using memory cached brands data');
         return cachedBrands!.data;
-    }
-
-    // LocalStorage 캐시 확인
-    const storedCache = loadCacheFromStorage();
-    if (storedCache) {
-        console.log('✅ Using localStorage cached brands data');
-        cachedBrands = storedCache;
-        return storedCache.data;
     }
 
     try {
@@ -134,10 +103,7 @@ export const fetchBrands = async (): Promise<Brand[]> => {
             timestamp: Date.now()
         };
 
-        // LocalStorage에도 저장
-        saveCacheToStorage(cachedBrands);
-
-        console.log(`✅ Cached ${brands.length} brands (memory + localStorage)`);
+        console.log(`✅ Cached ${brands.length} brands in memory (24h)`);
         return brands;
     } catch (error) {
         console.error('Failed to fetch brands:', error);
@@ -231,11 +197,7 @@ export const getBrandById = async (id: string): Promise<Brand | null> => {
 // 캐시 무효화 (새 브랜드 추가 후 호출)
 export const invalidateBrandsCache = () => {
     cachedBrands = null;
-    try {
-        localStorage.removeItem(LOCALSTORAGE_KEY);
-    } catch (error) {
-        console.error('Failed to invalidate cache:', error);
-    }
+    console.log('🔄 Cache invalidated');
 };
 
 export type { Brand, QuizData } from '../types';
