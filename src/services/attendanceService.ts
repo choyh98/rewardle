@@ -6,7 +6,7 @@ export const attendanceService = {
     async fetchAttendance(userId: string) {
         const { data, error } = await supabase
             .from('attendance')
-            .select('*')
+            .select('user_id, check_date, streak')
             .eq('user_id', userId)
             .order('check_date', { ascending: false });
         if (error) throw error;
@@ -47,12 +47,12 @@ export const attendanceService = {
         }
     },
 
-    // 오늘 출석 여부 확인 (읽기 전용 - 변경 없음)
+    // 오늘 출석 여부 확인
     async getTodayAttendance(userId: string): Promise<AttendanceData | null> {
         const today = new Date().toISOString().split('T')[0];
         const { data, error } = await supabase
             .from('attendance')
-            .select('*')
+            .select('check_date, streak')
             .eq('user_id', userId)
             .eq('check_date', today)
             .maybeSingle();

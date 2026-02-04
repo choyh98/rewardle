@@ -29,7 +29,19 @@ export const fetchBrands = async (): Promise<Brand[]> => {
         console.log('🔄 Fetching fresh brands data from Supabase');
         const { data, error } = await supabase
             .from('brands')
-            .select('*')
+            .select(`
+                id,
+                name,
+                wordle_answer,
+                hint_image,
+                place_quiz_question,
+                place_quiz_answer,
+                place_url,
+                apple_game_word,
+                shooting_wordle_answer,
+                mission_data,
+                is_active
+            `)
             .eq('is_active', true);
 
         if (error) {

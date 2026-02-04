@@ -58,7 +58,7 @@ const GamePage: React.FC = () => {
         if (!brand || hasRecorded.current) return;
         hasRecorded.current = true;
         const gameTypeKey = type === 'wordle' ? 'wordle' : type === 'shooting' ? 'shooting' : 'apple';
-        console.log('🎮 게임 완료 - 게임 횟수 차감:', { type: gameTypeKey, brandId: brand.id });
+        console.log('게임 완료 - 게임 횟수 차감:', { type: gameTypeKey, brandId: brand.id });
         recordGameCompletion(gameTypeKey as GameType, brand.id);
     };
 

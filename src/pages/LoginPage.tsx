@@ -60,12 +60,12 @@ const LoginPage: React.FC = () => {
                 // 프로모션 코드 적용
                 const pendingPromo = localStorage.getItem('pending_promo_code');
                 if (pendingPromo) {
-                    console.log('🎁 Applying promo code:', pendingPromo);
+                    console.log('Applying promo code:', pendingPromo);
                     const result = await promoCodeService.applyPromoCode(session.user.id, pendingPromo);
                     if (result.success) {
                         localStorage.removeItem('pending_promo_code');
                         console.log('✅ Promo code applied:', result.message);
-                        alert(`🎉 ${result.message}\n+${result.points_awarded}P 보너스 지급!`);
+                        alert(`${result.message}\n+${result.points_awarded}P 보너스 지급!`);
                     }
                 }
                 
@@ -76,7 +76,7 @@ const LoginPage: React.FC = () => {
                     const alreadyClaimed = localStorage.getItem(campaignKey);
                     
                     if (!alreadyClaimed) {
-                        console.log('🎁 Applying campaign signup reward:', pendingCampaign);
+                        console.log('Applying campaign signup reward:', pendingCampaign);
                         try {
                             await pointService.addPoints(session.user.id, 200, `${pendingCampaign} 캠페인 - 회원가입 보상`);
                             localStorage.setItem(campaignKey, 'true');

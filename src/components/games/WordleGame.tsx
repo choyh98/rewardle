@@ -214,7 +214,7 @@ const WordleGame: React.FC<WordleGameProps> = ({ brand, onComplete, onBack, onDe
                             }`}
                         >
                             <span className="text-[16px] font-medium text-[#121212]">
-                                {currentRow < 3 ? `🔒 힌트 (${4 - currentRow}번 후)` : '💡 힌트 보기'}
+                                {currentRow < 3 ? `힌트 (${4 - currentRow}번 후)` : '힌트 보기'}
                             </span>
                         </button>
                     ) : (

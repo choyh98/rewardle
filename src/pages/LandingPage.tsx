@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Award, LogOut, Target, Play, Info, MessageCircle, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { usePoints } from '../context/PointsContext';
-import { getDefaultBrand, type Brand } from '../data/brands';
+import { getDefaultBrand, fetchBrands, type Brand } from '../data/brands';
 import { supabase } from '../lib/supabase';
-import { OnboardingTutorial } from '../components/common';
+import { OnboardingTutorial, WalkingMissionPage } from '../components/common';
 import { STORAGE_KEYS, TIMERS } from '../data/constants';
 import appleIcon from '../assets/apple.png';
 import wordleIcon from '../assets/wordle.png';
@@ -18,7 +18,8 @@ type Difficulty = 'easy' | 'normal' | 'hard';
 
 const LandingPage: React.FC = () => {
     const { user } = useAuth();
-    const { points, dailyGamesRemaining, gameHistory, nextResetTime } = usePoints();
+    const { points, dailyGamesRemaining, gameHistory, nextResetTime, addPoints } = usePoints();
+    const navigate = useNavigate();
     const [defaultBrand, setDefaultBrand] = useState<Brand | null>(null);
     const [showGameHistoryModal, setShowGameHistoryModal] = useState(false);
     const [timeRemaining, setTimeRemaining] = useState<string>('');
@@ -36,6 +37,8 @@ const LandingPage: React.FC = () => {
         message: ''
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showWalkingMission, setShowWalkingMission] = useState(false);
+    const [randomWalkingBrand, setRandomWalkingBrand] = useState<Brand | null>(null);
 
     // 첫 방문 체크
     useEffect(() => {
@@ -176,6 +179,30 @@ ${contactForm.message}
             console.error('이메일 전송 실패:', error);
             alert('전송에 실패했습니다. 다시 시도해주세요.');
             setIsSubmitting(false);
+        }
+    };
+
+    // 도보미션 바로하기
+    const handleStartWalkingMission = async () => {
+        try {
+            const brands = await fetchBrands();
+            // 도보미션이 있는 브랜드 필터링
+            const walkingBrands = brands.filter(b => 
+                b.mission?.type === 'walking' && b.mission.walking
+            );
+
+            if (walkingBrands.length === 0) {
+                alert('현재 이용 가능한 도보미션이 없습니다.');
+                return;
+            }
+
+            // 랜덤 선택
+            const randomBrand = walkingBrands[Math.floor(Math.random() * walkingBrands.length)];
+            setRandomWalkingBrand(randomBrand);
+            setShowWalkingMission(true);
+        } catch (error) {
+            console.error('도보미션 브랜드 로드 실패:', error);
+            alert('도보미션을 불러오는데 실패했습니다.');
         }
     };
 
@@ -376,6 +403,29 @@ ${contactForm.message}
                             <span>지금 플레이하기</span>
                         </div>
                     </Link>
+
+                    {/* 플레이스미션 바로하기 */}
+                    <button
+                        onClick={handleStartWalkingMission}
+                        className="w-full group bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all active:scale-[0.98] touch-manipulation border-2 border-transparent hover:border-[#4a90e2]/20 flex flex-col min-h-[180px]"
+                    >
+                        <div className="flex items-center gap-4 mb-4">
+                            <div className="h-[48px] w-[48px] flex items-center justify-center flex-shrink-0">
+                                <svg className="w-16 h-16 text-[#4a90e2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                            </div>
+                            <div className="flex-1 min-w-0 text-left">
+                                <h3 className="text-xl font-bold text-gray-800 mb-1 truncate">플레이스 미션</h3>
+                                <p className="text-gray-500 text-sm line-clamp-1">도보미션 랜덤으로 바로하기</p>
+                            </div>
+                        </div>
+                        <div className="w-full flex items-center justify-center gap-2 bg-[#4a90e2] text-white font-bold py-3 rounded-xl group-hover:bg-[#357abd] transition-colors">
+                            <Play className="size-5 fill-current" />
+                            <span>바로 시작하기</span>
+                        </div>
+                    </button>
                 </div>
 
                 {/* Utility Area */}
@@ -555,6 +605,21 @@ ${contactForm.message}
                         </p>
                     </motion.div>
                 </div>
+            )}
+
+            {/* Walking Mission Modal */}
+            {showWalkingMission && randomWalkingBrand?.mission?.walking && (
+                <WalkingMissionPage
+                    walkingData={randomWalkingBrand.mission.walking}
+                    storeName={randomWalkingBrand.name}
+                    storeImage={randomWalkingBrand.hintImage}
+                    bonusPoints={5}
+                    onBack={() => setShowWalkingMission(false)}
+                    onSuccess={() => {
+                        addPoints(5, `${randomWalkingBrand.name} 플레이스 미션 완료`);
+                        setShowWalkingMission(false);
+                    }}
+                />
             )}
         </div>
     );

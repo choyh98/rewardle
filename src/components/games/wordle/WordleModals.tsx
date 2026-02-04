@@ -158,7 +158,7 @@ export const WordleHelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) =
                             {demoStep === 3 && '2번째 시도: "아쿠바가든" 입력 중...'}
                             {demoStep === 4 && '"아", "쿠", "든"은 위치가 정확해요!'}
                             {demoStep === 5 && '3번째 시도: "아쿠아가든" 입력 중...'}
-                            {demoStep === 6 && '🎉 정답입니다! 모두 초록색!'}
+                            {demoStep === 6 && '정답입니다! 모두 초록색!'}
                         </p>
                         <div className="flex justify-center gap-1 mt-2">
                             {[0, 1, 2, 3, 4, 5, 6].map((step) => (
@@ -259,7 +259,11 @@ export const WordleResultModal: React.FC<ResultModalProps> = ({ gameState, onHom
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6">
                 <div className="bg-white rounded-[16px] p-[32px] max-w-[320px] text-center">
                     <div className="mb-[20px]">
-                        <div className="text-[48px] mb-[12px]">🎉</div>
+                        <div className="w-16 h-16 mx-auto mb-3 bg-[#28c52d] rounded-full flex items-center justify-center">
+                            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
                         <p className="font-bold text-[24px] text-[#28c52d] mb-[8px]">정답입니다!</p>
                         <p className="font-semibold text-[20px] text-[#121212]">5포인트가 적립되었습니다.</p>
                     </div>
@@ -326,10 +330,14 @@ export const WordleMissionModal: React.FC<MissionModalProps> = ({ question, plac
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-6">
             <div className="bg-white rounded-[24px] p-8 max-w-[400px] w-full relative">
                 <div className="flex flex-col gap-6">
-                    <div className="flex items-center gap-3">
-                        <div className="text-[32px]">🎯</div>
-                        <h2 className="font-black text-[24px] text-[#ff6b6b]">추가 미션!</h2>
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-[#ff6b6b] rounded-full flex items-center justify-center">
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
                     </div>
+                    <h2 className="font-black text-[24px] text-[#ff6b6b]">추가 미션!</h2>
+                </div>
 
                     <div className="bg-[#fff0db] rounded-[16px] p-4">
                         <p className="text-[18px] text-[#333] leading-relaxed">{question}</p>

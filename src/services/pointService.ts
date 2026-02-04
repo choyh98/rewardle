@@ -18,11 +18,11 @@ export const pointService = {
         return data?.points || 0;
     },
 
-    // 포인트 내역 가져오기 (읽기 전용 - 변경 없음)
+    // 포인트 내역 가져오기 (필요한 컬럼만 선택)
     async getPointHistory(userId: string, limit = 100): Promise<PointHistory[]> {
         const { data, error } = await supabase
             .from('point_history')
-            .select('*')
+            .select('created_at, reason, amount')
             .eq('user_id', userId)
             .order('created_at', { ascending: false })
             .limit(limit);

@@ -245,24 +245,17 @@ export const WalkingMissionPage: React.FC<WalkingMissionPageProps> = ({
                         </div>
 
                         {/* 미션 시작 버튼 */}
-                        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 space-y-2">
+                        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
                             <button
                                 onClick={() => {
-                                    const naverMapUrl = `https://map.naver.com/p/directions/-/${encodeURIComponent(storeName)}/walk?c=15,0,0,0,dh`;
-                                    window.open(naverMapUrl, '_blank');
+                                    window.open('https://www.naver.com', '_blank');
                                     setStep('verify');
                                 }}
                                 className="w-full h-[56px] bg-[#ff6b6b] text-white font-black text-[17px] rounded-[16px] hover:bg-[#ff5252] active:scale-[0.98] transition-all shadow-lg flex items-center justify-center gap-2"
                             >
                                 <Navigation size={20} />
-                                네이버 지도로 길찾기
+                                키워드 검색하러가기
                                 <ChevronRight size={24} />
-                            </button>
-                            <button
-                                onClick={() => setStep('verify')}
-                                className="w-full h-[48px] bg-gray-100 text-gray-700 font-bold text-[15px] rounded-[12px] hover:bg-gray-200 active:scale-[0.98] transition-all"
-                            >
-                                직접 확인했어요
                             </button>
                         </div>
                     </motion.div>
@@ -285,6 +278,23 @@ export const WalkingMissionPage: React.FC<WalkingMissionPageProps> = ({
                             <p className="text-[15px] text-gray-500">
                                 네이버 지도에서 확인한 시간을 입력해주세요
                             </p>
+                        </div>
+
+                        {/* 출발지 → 도착지 정보 */}
+                        <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-[16px] p-4 border-2 border-blue-100">
+                            <div className="flex items-center justify-between gap-3">
+                                <div className="flex-1">
+                                    <p className="text-[11px] text-gray-500 mb-1">출발</p>
+                                    <p className="text-[14px] font-bold text-gray-800">{walkingData.startPoint}</p>
+                                </div>
+                                <div className="flex-shrink-0 px-3">
+                                    <ChevronRight className="text-blue-500" size={24} />
+                                </div>
+                                <div className="flex-1 text-right">
+                                    <p className="text-[11px] text-gray-500 mb-1">도착</p>
+                                    <p className="text-[14px] font-bold text-gray-800">{storeName}</p>
+                                </div>
+                            </div>
                         </div>
 
                         <div className="space-y-4">

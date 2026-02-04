@@ -74,7 +74,7 @@ export const WalkingMissionModal: React.FC<WalkingMissionModalProps> = ({
                         <Map className="text-[#ff6b6b]" size={32} />
                     </div>
                     <h2 className="text-[22px] font-black mb-2">
-                        {step === 3 ? '미션 완료! 🎉' : '길 찾고 포인트 받기'}
+                        {step === 3 ? '미션 완료!' : '길 찾고 포인트 받기'}
                     </h2>
                     <p className="text-[#737373] text-[15px]">
                         매장까지 가는 길을 확인해보세요
@@ -141,7 +141,7 @@ export const WalkingMissionModal: React.FC<WalkingMissionModalProps> = ({
                                 </p>
                                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
                                     <p className="text-xs text-yellow-800 font-semibold">
-                                        💡 Tip: 네이버 지도 예상 시간 기준 ±2분까지 정답으로 인정됩니다!
+                                        Tip: 네이버 지도 예상 시간 기준 ±2분까지 정답으로 인정됩니다!
                                     </p>
                                 </div>
 

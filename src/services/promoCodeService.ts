@@ -58,7 +58,7 @@ export const promoCodeService = {
     },
 
     /**
-     * 프로모션 코드 검증 (적용하지 않고 정보만 조회)
+     * 프로모션 코드 검증 (필요한 컬럼만)
      */
     async validatePromoCode(code: string): Promise<{
         valid: boolean;
@@ -68,7 +68,7 @@ export const promoCodeService = {
         try {
             const { data, error } = await supabase
                 .from('promo_codes')
-                .select('*')
+                .select('id, code, bonus_points, description, max_uses, current_uses, expires_at, is_active, created_at')
                 .eq('code', code.toUpperCase().trim())
                 .eq('is_active', true)
                 .maybeSingle();
@@ -147,13 +147,13 @@ export const promoCodeService = {
     },
 
     /**
-     * 모든 활성 프로모션 코드 조회 (관리자용)
+     * 모든 활성 프로모션 코드 조회 (관리자용, 필요한 컬럼만)
      */
     async getAllPromoCodes(): Promise<PromoCode[]> {
         try {
             const { data, error } = await supabase
                 .from('promo_codes')
-                .select('*')
+                .select('id, code, bonus_points, description, max_uses, current_uses, expires_at, is_active, created_at')
                 .order('created_at', { ascending: false });
 
             if (error) {

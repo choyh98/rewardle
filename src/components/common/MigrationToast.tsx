@@ -24,7 +24,11 @@ export const MigrationToast = () => {
                     className="fixed top-20 left-1/2 -translate-x-1/2 z-50"
                 >
                     <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3">
-                        <span className="text-2xl">🎉</span>
+                        <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center flex-shrink-0">
+                            <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
                         <div>
                             <p className="font-bold text-lg">포인트 이전 완료!</p>
                             <p className="text-sm opacity-90">

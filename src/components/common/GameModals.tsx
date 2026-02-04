@@ -23,7 +23,11 @@ export const SuccessModal: React.FC<SuccessModalProps> = ({
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6">
             <div className="bg-white rounded-[16px] p-[32px] max-w-[320px] text-center">
                 <div className="mb-[20px]">
-                    {emoji && <div className="text-[48px] mb-[12px]">{emoji}</div>}
+                    <div className="w-16 h-16 mx-auto mb-3 bg-[#28c52d] rounded-full flex items-center justify-center">
+                        <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
                     <p className="font-bold text-[18px] text-[#28c52d] mb-[8px]">{title}</p>
                     <p className="font-semibold text-[20px] text-[#121212]">{message}</p>
                 </div>

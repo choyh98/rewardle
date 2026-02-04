@@ -72,7 +72,7 @@ const AttendancePage: React.FC = () => {
                     const today = new Date().toISOString().split('T')[0];
                     const { data, error } = await supabase
                         .from('attendance')
-                        .select('*')
+                        .select('check_date, streak')
                         .eq('user_id', user.id)
                         .eq('check_date', today)
                         .maybeSingle();
@@ -255,7 +255,7 @@ const AttendancePage: React.FC = () => {
                         {attendanceStreak > 0 && (
                             <div className="bg-primary/10 rounded-2xl px-4 py-3 mb-4">
                                 <p className="text-primary font-black text-lg">
-                                    🔥 {attendanceStreak}일 연속 출석 중!
+                                    {attendanceStreak}일 연속 출석 중!
                                 </p>
                                 {attendanceStreak >= 3 && attendanceStreak < 7 && (
                                     <p className="text-xs text-gray-600 mt-1">7일 연속 출석까지 {7 - attendanceStreak}일 남았어요</p>

@@ -401,7 +401,7 @@ const AdminDashboard: React.FC = () => {
                         <div>
                             <div className="flex items-center justify-between mb-2">
                                 <label className="text-sm font-black text-gray-700 flex items-center gap-2">
-                                    🍎 사과 게임 단어
+                                    사과 게임 단어
                                 </label>
                                 <label className="flex items-center gap-2 cursor-pointer">
                                     <input

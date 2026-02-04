@@ -61,14 +61,14 @@ export const createExchange = async (
 };
 
 /**
- * 사용자의 교환 신청 내역 조회
+ * 사용자의 교환 신청 내역 조회 (필요한 컬럼만)
  */
 export const getUserExchanges = async (userId: string): Promise<PointExchange[]> => {
     const { data, error } = await supabase
         .from('point_exchanges')
-        .select('*')
+        .select('id, user_id, name, phone, voucher_type, points, status, created_at, completed_at')
         .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false});
 
     if (error) {
         console.error('Failed to get user exchanges:', error);
@@ -79,12 +79,12 @@ export const getUserExchanges = async (userId: string): Promise<PointExchange[]>
 };
 
 /**
- * 모든 교환 신청 내역 조회 (관리자용)
+ * 모든 교환 신청 내역 조회 (관리자용, 필요한 컬럼만)
  */
 export const getAllExchanges = async (): Promise<PointExchange[]> => {
     const { data, error } = await supabase
         .from('point_exchanges')
-        .select('*')
+        .select('id, user_id, name, phone, voucher_type, points, status, created_at, completed_at')
         .order('created_at', { ascending: false });
 
     if (error) {

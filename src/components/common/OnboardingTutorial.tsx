@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronRight, ChevronLeft } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, Play, Target, Award } from 'lucide-react';
 
 interface OnboardingStep {
     title: string;
@@ -11,22 +11,22 @@ interface OnboardingStep {
 
 const steps: OnboardingStep[] = [
     {
-        emoji: '🎮',
+        emoji: 'game',
         title: '게임을 선택하세요',
         description: '워들, 슈팅워들, 사과게임 중\n하나를 선택해서 시작해보세요!'
     },
     {
-        emoji: '🎯',
+        emoji: 'target',
         title: '가게명을 맞춰보세요',
         description: '게임을 플레이하고\n숨겨진 가게명을 맞춰보세요!'
     },
     {
-        emoji: '💰',
+        emoji: 'coin',
         title: '포인트를 받으세요',
         description: '게임을 완료하면 포인트를 받고\n온누리상품권으로 교환할 수 있어요!'
     },
     {
-        emoji: '🎁',
+        emoji: 'gift',
         title: '하루 10번 플레이 가능',
         description: '매일 10번까지 게임을 플레이하고\n포인트를 모아보세요!'
     }
@@ -98,9 +98,30 @@ const OnboardingTutorial: React.FC<OnboardingTutorialProps> = ({ onComplete }) =
                         transition={{ duration: 0.3 }}
                         className="text-center"
                     >
-                        {/* 이모지/이미지 */}
-                        <div className="text-7xl mb-6">
-                            {steps[currentStep].emoji}
+                        {/* 아이콘 */}
+                        <div className="mb-6 flex items-center justify-center">
+                            {steps[currentStep].emoji === 'game' && (
+                                <div className="w-20 h-20 bg-primary rounded-full flex items-center justify-center">
+                                    <Play className="w-10 h-10 text-white fill-current" />
+                                </div>
+                            )}
+                            {steps[currentStep].emoji === 'target' && (
+                                <div className="w-20 h-20 bg-[#ff6b6b] rounded-full flex items-center justify-center">
+                                    <Target className="w-10 h-10 text-white" />
+                                </div>
+                            )}
+                            {steps[currentStep].emoji === 'coin' && (
+                                <div className="w-20 h-20 bg-[#fbbf24] rounded-full flex items-center justify-center">
+                                    <Award className="w-10 h-10 text-white" />
+                                </div>
+                            )}
+                            {steps[currentStep].emoji === 'gift' && (
+                                <div className="w-20 h-20 bg-[#10b981] rounded-full flex items-center justify-center">
+                                    <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+                                    </svg>
+                                </div>
+                            )}
                         </div>
 
                         {/* 제목 */}

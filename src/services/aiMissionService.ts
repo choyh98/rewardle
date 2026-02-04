@@ -247,7 +247,6 @@ export const analyzePlaceWithAI = async ({ storeName, address, category, signatu
         let response: Response | undefined;
         const models = [
             'gemini-2.0-flash',      // 2.0 Flash (안정, 1순위)
-            'gemini-2.0-flash-exp',  // 최신 실험 모델
             'gemini-1.5-flash',      // 1.5 Flash
             'gemini-1.5-pro',        // 1.5 Pro (고품질)
         ];

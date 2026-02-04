@@ -9,15 +9,15 @@ function getStartOfTodayISO(): string {
 }
 
 export const gameService = {
-    // 오늘의 게임 플레이 내역 가져오기 (로컬 날짜 기준)
+    // 오늘의 게임 플레이 내역 가져오기 (필요한 컬럼만)
     async getTodayGamePlays(userId: string) {
         const startOfToday = getStartOfTodayISO();
         console.log('getTodayGamePlays 시작:', { userId, startOfToday });
         
-        // game_plays 테이블에서 조회 (간단한 게임 시작 기록)
+        // game_plays 테이블에서 조회
         const { data, error } = await supabase
             .from('game_plays')
-            .select('*')
+            .select('game_type, created_at')
             .eq('user_id', userId)
             .gte('created_at', startOfToday)
             .order('created_at', { ascending: false });

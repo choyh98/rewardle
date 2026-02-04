@@ -133,7 +133,7 @@ const CampaignPage: React.FC = () => {
             
             addPoints(50, `${brandName} 캠페인 - 퀴즈 완료`);
             setShowQuizModal(false);
-            alert('🎉 정답입니다! 50P가 지급되었습니다!\n게임 50P + 퀴즈 50P = 총 100P 획득!');
+            alert('정답입니다! 50P가 지급되었습니다!\n게임 50P + 퀴즈 50P = 총 100P 획득!');
             setQuizAnswer('');
         } else {
             setQuizError('정답이 아닙니다. 배달의 민족에서 다시 확인해주세요.');
@@ -298,7 +298,7 @@ const CampaignPage: React.FC = () => {
                 {/* 완료 상태 */}
                 <div className="bg-white rounded-2xl p-6 shadow-lg text-center">
                     <div className="text-4xl mb-2">
-                        {steps.every(s => s.completed) ? '🎉' : '⏳'}
+                        {steps.every(s => s.completed) ? '완료' : '진행중'}
                     </div>
                     <h3 className="font-bold text-lg text-gray-800 mb-2">
                         {steps.every(s => s.completed) 
@@ -313,7 +313,7 @@ const CampaignPage: React.FC = () => {
                     
                     {steps.every(s => s.completed) && (
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 text-sm text-gray-700">
-                            💡 <strong>포인트 교환 안내</strong><br/>
+                            <strong>포인트 교환 안내</strong><br/>
                             적립된 포인트는 디지털온누리 등으로 교환하실 수 있습니다
                         </div>
                     )}
